@@ -1,0 +1,108 @@
+#!/usr/bin/env python3
+"""Produce deterministic and ephemeral-browser QA findings for one render run."""
+
+from __future__ import annotations
+
+import argparse
+import json
+import os
+import subprocess
+import sys
+from pathlib import Path
+from urllib.parse import unquote
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+
+from render_support import atomic_json, digest_path, validate_source_metadata
+
+from lint_core import compute_checks
+from presentation import (
+    PresentationError,
+    validate_manifest,
+)
+
+
+def inspect(render_html: Path, slide_ids: list[str]) -> dict[str, object]:
+    """Use a throwaway local Playwright process, never CDP or a user profile."""
+    index = render_html / "index.html"
+    if not index.is_file():
+        raise RuntimeError("rendered HTML index is missing")
+    script_path = Path(__file__).with_name("inspect_dom.cjs")
+    result = subprocess.run(
+        [
+            os.environ.get("PRESENTATION_NODE_BIN", "node"),
+            str(script_path),
+            str(render_html.resolve()),
+            json.dumps(slide_ids),
+        ],
+        text=True,
+        capture_output=True,
+        check=False,
+    )
+    if result.returncode:
+        raise RuntimeError(result.stderr.strip() or "Playwright inspection failed")
+    return json.loads(result.stdout)
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--manifest", type=Path, required=True)
+    parser.add_argument("--source", type=Path, required=True)
+    parser.add_argument("--theme", type=Path, required=True)
+    parser.add_argument("--render", type=Path, required=True)
+    parser.add_argument("--out", type=Path, required=True)
+    args = parser.parse_args()
+    if args.out.exists():
+        print("lint output is immutable and already exists", file=sys.stderr)
+        return 2
+    try:
+        manifest = json.loads(args.manifest.read_text(encoding="utf-8"))
+        validate_manifest(manifest, args.manifest.parent)
+        validate_source_metadata(args.source, manifest)
+        tokens = json.loads(args.theme.read_text(encoding="utf-8"))
+        result = json.loads(
+            (args.render / "render-result.json").read_text(encoding="utf-8")
+        )
+        if not (args.render / "deck.pdf").is_file() or not list(
+            (args.render / "slides").glob("*.png")
+        ):
+            raise PresentationError("render exports are incomplete")
+    except (OSError, json.JSONDecodeError, PresentationError) as exc:
+        print(f"invalid lint input: {exc}", file=sys.stderr)
+        return 2
+    try:
+        inspection = inspect(
+            args.render / "html", [slide["id"] for slide in manifest["slides"]]
+        )
+    except (OSError, RuntimeError, json.JSONDecodeError) as exc:
+        print(f"headless inspection failure: {exc}", file=sys.stderr)
+        return 3
+    checks = compute_checks(
+        manifest,
+        tokens,
+        inspection,
+        lambda path: (args.render / "html" / unquote(path)).is_file(),
+    )
+    errors = [
+        item
+        for item in checks
+        if item["severity"] == "error" and item["status"] == "error"
+    ]
+    payload = {
+        "producer": "lint",
+        "run_id": result["run_id"],
+        "input_digest": digest_path(args.manifest),
+        "render_digest": result["render_digest"],
+        "checks": checks,
+        "summary": {"errors": len(errors)},
+    }
+    try:
+        atomic_json(args.out, payload)
+    except OSError as exc:
+        print(f"cannot commit lint fragment: {exc}", file=sys.stderr)
+        return 3
+    return 1 if errors else 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

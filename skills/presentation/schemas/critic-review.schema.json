@@ -1,0 +1,81 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "reviewed_artifact_digest",
+    "reviewer",
+    "deck",
+    "representative_slides",
+    "findings"
+  ],
+  "properties": {
+    "reviewed_artifact_digest": {"type": "string"},
+    "reviewer": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type", "name"],
+      "properties": {
+        "type": {"type": "string", "const": "agent"},
+        "name": {"type": "string", "minLength": 1}
+      }
+    },
+    "deck": {"$ref": "#/$defs/judgments"},
+    "representative_slides": {
+      "type": "array",
+      "minItems": 3,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["slide_id", "judgments"],
+        "properties": {
+          "slide_id": {"type": "string", "minLength": 1},
+          "judgments": {"$ref": "#/$defs/judgments"}
+        }
+      }
+    },
+    "findings": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["slide_id", "category", "observation", "action"],
+        "properties": {
+          "slide_id": {"type": "string"},
+          "category": {"type": "string", "minLength": 1},
+          "observation": {"type": "string", "minLength": 1},
+          "action": {"type": "string", "minLength": 1}
+        }
+      }
+    }
+  },
+  "$defs": {
+    "judgment": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["item", "judgment", "notes"],
+      "properties": {
+        "item": {
+          "type": "string",
+          "enum": [
+            "hierarchy",
+            "composition_variety",
+            "information_density",
+            "narrative_continuity",
+            "audience_fit",
+            "accessibility",
+            "rehearsal_readiness"
+          ]
+        },
+        "judgment": {"type": "string", "enum": ["pass", "fail"]},
+        "notes": {"type": "string", "minLength": 1}
+      }
+    },
+    "judgments": {
+      "type": "array",
+      "minItems": 7,
+      "maxItems": 7,
+      "items": {"$ref": "#/$defs/judgment"}
+    }
+  }
+}

@@ -1,0 +1,1 @@
+"""Presentation-authoring skill implementation."""

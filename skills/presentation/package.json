@@ -1,0 +1,11 @@
+{
+  "name": "presentation-skill-scripts",
+  "private": true,
+  "description": "Runtime dependency for skills/presentation/scripts/presentation-toolchain.mjs -- installed on first use via `node scripts/presentation-toolchain.mjs install`, not vendored. Co-located so the skill works identically regardless of its host repo's own root package.json.",
+  "devDependencies": {
+    "@slidev/cli": "52.19.1",
+    "@slidev/theme-default": "0.25.0",
+    "playwright": "1.58.2",
+    "playwright-chromium": "1.58.2"
+  }
+}

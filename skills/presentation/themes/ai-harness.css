@@ -1,0 +1,188 @@
+.slidev-page {
+  background:
+    radial-gradient(circle at 90% 10%, color-mix(in srgb, var(--presentation-accent) 16%, transparent), transparent 34%),
+    var(--presentation-background);
+  color: var(--presentation-foreground);
+  font-family: var(--presentation-font-body);
+}
+
+/*
+ * Slidev's built-in "go to slide" quick-nav dialog (#slidev-goto-dialog) hides itself by
+ * shifting -5rem above the viewport, sized for a short autocomplete list. Its list has no
+ * max-height/overflow constraint, so for a 20+ slide deck the panel's own height (~1000px+)
+ * far exceeds that -5rem offset, leaving most of it visibly overlapping every slide's right
+ * edge, full height, with no way to dismiss it. Disabled outright: talks are navigated by
+ * arrow keys/click, not by typing a slide number, so the feature costs nothing to drop.
+ */
+#slidev-goto-dialog {
+  display: none !important;
+}
+
+.presentation-layout {
+  box-sizing: border-box;
+  display: grid;
+  font-size: 24px;
+  height: 100%;
+  padding: calc(var(--presentation-space) * 7) calc(var(--presentation-space) * 8);
+  position: relative;
+  gap: calc(var(--presentation-space) * 3);
+}
+
+.presentation-layout h1 {
+  font-family: var(--presentation-font-display);
+  font-size: 2.6rem;
+  font-weight: 700;
+  letter-spacing: -0.035em;
+  line-height: 1.08;
+  margin: 0 0 calc(var(--presentation-space) * 2);
+}
+
+.presentation-layout h2,
+.presentation-layout h3 {
+  font-family: var(--presentation-font-display);
+}
+
+.presentation-layout pre,
+.presentation-layout code {
+  font-family: var(--presentation-font-mono);
+}
+
+.presentation-chrome {
+  align-items: center;
+  color: var(--presentation-muted);
+  display: flex;
+  font-size: 0.62rem;
+  font-weight: 650;
+  gap: calc(var(--presentation-space) * 1.5);
+  left: calc(var(--presentation-space) * 8);
+  letter-spacing: 0.08em;
+  position: absolute;
+  right: calc(var(--presentation-space) * 8);
+  text-transform: uppercase;
+  top: calc(var(--presentation-space) * 2.5);
+}
+
+.presentation-section { color: var(--presentation-accent); }
+.presentation-time { margin-left: auto; }
+
+.presentation-progress {
+  background: color-mix(in srgb, var(--presentation-muted) 25%, transparent);
+  bottom: 0;
+  height: 4px;
+  left: 0;
+  position: absolute;
+  right: 0;
+}
+
+.presentation-progress > span {
+  background: linear-gradient(90deg, var(--presentation-accent), var(--presentation-positive));
+  display: block;
+  height: 100%;
+}
+
+.presentation-region {
+  border-radius: var(--presentation-radius);
+  min-width: 0;
+}
+
+.presentation-layout--title {
+  align-content: center;
+  grid-template-areas: "body" "subtitle";
+  grid-template-rows: auto auto;
+}
+.presentation-layout--title [data-presentation-slot="body"] { grid-area: body; max-width: 82%; }
+.presentation-layout--title [data-presentation-slot="subtitle"] {
+  color: var(--presentation-muted);
+  font-size: 24px;
+  grid-area: subtitle;
+  max-width: 72%;
+}
+
+.presentation-layout--thesis {
+  grid-template-areas: "body route";
+  grid-template-columns: minmax(0, 1.15fr) minmax(0, 0.85fr);
+}
+
+.presentation-layout--thesis [data-presentation-slot="route"],
+.presentation-layout--comparison [data-presentation-slot="left"],
+.presentation-layout--comparison [data-presentation-slot="right"],
+.presentation-layout--evidence [data-presentation-slot="context"],
+.presentation-layout--code [data-presentation-slot="explanation"],
+.presentation-layout--demo [data-presentation-slot] {
+  background: color-mix(in srgb, var(--presentation-panel) 90%, transparent);
+  border: 1px solid color-mix(in srgb, var(--presentation-accent) 28%, transparent);
+  padding: calc(var(--presentation-space) * 2.5);
+}
+
+.presentation-layout--comparison {
+  grid-template-areas: "body body" "left right";
+  grid-template-columns: 1fr 1fr;
+  grid-template-rows: auto 1fr;
+}
+.presentation-layout--comparison [data-presentation-slot="body"] { grid-area: body; }
+.presentation-layout--comparison [data-presentation-slot="left"] { grid-area: left; }
+.presentation-layout--comparison [data-presentation-slot="right"] { grid-area: right; }
+
+.presentation-layout--process {
+  grid-template-areas: "body" "steps";
+  grid-template-rows: auto 1fr;
+}
+.presentation-layout--process [data-presentation-slot="steps"] {
+  align-items: stretch;
+  display: flex;
+  gap: calc(var(--presentation-space) * 2);
+}
+.presentation-layout--process [data-presentation-slot="steps"] > * {
+  background: var(--presentation-panel);
+  border-top: 4px solid var(--presentation-accent);
+  flex: 1;
+  padding: calc(var(--presentation-space) * 2);
+}
+
+.presentation-layout--evidence {
+  grid-template-areas: "body metric" "context metric";
+  grid-template-columns: 1fr 0.8fr;
+}
+.presentation-layout--evidence [data-presentation-slot="metric"] {
+  align-items: center;
+  background-color: var(--presentation-accent);
+  background-image: linear-gradient(145deg, var(--presentation-accent), var(--presentation-positive));
+  color: var(--presentation-background);
+  display: flex;
+  font-family: var(--presentation-font-display);
+  font-size: 2.5rem;
+  font-weight: 750;
+  grid-area: metric;
+  justify-content: center;
+  padding: calc(var(--presentation-space) * 3);
+}
+.presentation-layout--evidence [data-presentation-slot="context"] { grid-area: context; }
+
+.presentation-layout--code {
+  grid-template-areas: "body body" "code explanation";
+  grid-template-columns: 1.25fr 0.75fr;
+  grid-template-rows: auto 1fr;
+}
+.presentation-layout--code [data-presentation-slot="body"] { grid-area: body; }
+.presentation-layout--code [data-presentation-slot="code"] { grid-area: code; }
+.presentation-layout--code [data-presentation-slot="explanation"] { grid-area: explanation; }
+
+.presentation-layout--demo {
+  grid-template-areas: "body body body" "input action result";
+  grid-template-columns: repeat(3, 1fr);
+  grid-template-rows: auto 1fr;
+}
+.presentation-layout--demo [data-presentation-slot="body"] { grid-area: body; }
+.presentation-layout--demo [data-presentation-slot="input"] { grid-area: input; }
+.presentation-layout--demo [data-presentation-slot="action"] { grid-area: action; }
+.presentation-layout--demo [data-presentation-slot="result"] { grid-area: result; }
+
+.presentation-layout--close {
+  align-content: center;
+  grid-template-areas: "body" "actions";
+}
+.presentation-layout--close [data-presentation-slot="actions"] {
+  border-left: 5px solid var(--presentation-accent);
+  font-size: 31px;
+  padding: calc(var(--presentation-space) * 2.5);
+}

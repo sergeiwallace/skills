@@ -1,0 +1,9 @@
+{
+  "name": "graphic-skill-scripts",
+  "private": true,
+  "type": "module",
+  "description": "Runtime dependency for the contact-sheet renderer; installed on first use, not vendored.",
+  "dependencies": {
+    "@resvg/resvg-js": "^2.6.2"
+  }
+}

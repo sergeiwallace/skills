@@ -1,0 +1,44 @@
+#!/usr/bin/env python3
+"""Initialize a fenced presentation candidate workflow."""
+
+from __future__ import annotations
+
+import argparse
+import json
+import sys
+from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from presentation import LockUnavailable, PresentationError
+from workflow_support import start_workflow
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--deck", type=Path, required=True)
+    parser.add_argument("--brief", type=Path, required=True)
+    parser.add_argument("--research", type=Path, action="append", default=[])
+    parser.add_argument("--timeout", type=float, default=30.0)
+    args = parser.parse_args()
+    try:
+        workflow = start_workflow(args.deck, args.brief, args.research, args.timeout)
+    except (PresentationError, LockUnavailable) as exc:
+        print(str(exc), file=sys.stderr)
+        return 2
+    try:
+        print(
+            json.dumps(
+                {
+                    "run_id": workflow.run_id,
+                    "token": workflow.token,
+                    "epoch": workflow.epoch,
+                }
+            )
+        )
+        return 0
+    finally:
+        workflow.close()
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

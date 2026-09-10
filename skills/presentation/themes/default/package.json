@@ -1,0 +1,8 @@
+{
+  "name": "presentation-default-theme",
+  "private": true,
+  "version": "1.0.0",
+  "keywords": ["slidev-theme", "slidev"],
+  "engines": {"node": ">=20", "slidev": ">=52.10.0"},
+  "slidev": {"defaults": {"fonts": false}}
+}

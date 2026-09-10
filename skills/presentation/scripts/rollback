@@ -1,0 +1,14 @@
+#!/usr/bin/env python3
+"""Restore a previously sealed presentation candidate as current."""
+
+from __future__ import annotations
+
+import sys
+from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+
+from workflow_cli import rollback_main
+
+if __name__ == "__main__":
+    raise SystemExit(rollback_main())

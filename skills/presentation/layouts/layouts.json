@@ -1,0 +1,66 @@
+{
+  "title": {
+    "regions": 2,
+    "dominant_visual": 1,
+    "pattern": "cover-or-section",
+    "allowed_slots": ["body", "subtitle"],
+    "required_slots": ["body", "subtitle"],
+    "density": {"minimum": 3, "maximum": 42, "hard_maximum": 55}
+  },
+  "thesis": {
+    "regions": 2,
+    "dominant_visual": 1,
+    "pattern": "agenda-or-timeline",
+    "allowed_slots": ["body", "route"],
+    "required_slots": ["body", "route"],
+    "density": {"minimum": 18, "maximum": 62, "hard_maximum": 78}
+  },
+  "comparison": {
+    "regions": 3,
+    "dominant_visual": 1,
+    "pattern": "comparison-table",
+    "allowed_slots": ["body", "left", "right"],
+    "required_slots": ["body", "left", "right"],
+    "density": {"minimum": 32, "maximum": 105, "hard_maximum": 125}
+  },
+  "process": {
+    "regions": 2,
+    "dominant_visual": 1,
+    "pattern": "process-flow",
+    "allowed_slots": ["body", "steps"],
+    "required_slots": ["body", "steps"],
+    "density": {"minimum": 22, "maximum": 72, "hard_maximum": 90}
+  },
+  "evidence": {
+    "regions": 3,
+    "dominant_visual": 1,
+    "pattern": "quantitative-bar",
+    "allowed_slots": ["body", "metric", "context"],
+    "required_slots": ["body", "metric", "context"],
+    "density": {"minimum": 24, "maximum": 88, "hard_maximum": 105}
+  },
+  "code": {
+    "regions": 3,
+    "dominant_visual": 0,
+    "pattern": "code-and-example",
+    "allowed_slots": ["body", "code", "explanation"],
+    "required_slots": ["body", "code", "explanation"],
+    "density": {"minimum": 28, "maximum": 115, "hard_maximum": 135}
+  },
+  "demo": {
+    "regions": 4,
+    "dominant_visual": 1,
+    "pattern": "input-action-result-card-grid",
+    "allowed_slots": ["body", "input", "action", "result"],
+    "required_slots": ["body", "input", "action", "result"],
+    "density": {"minimum": 28, "maximum": 100, "hard_maximum": 120}
+  },
+  "close": {
+    "regions": 2,
+    "dominant_visual": 1,
+    "pattern": "call-to-action",
+    "allowed_slots": ["body", "actions"],
+    "required_slots": ["body", "actions"],
+    "density": {"minimum": 5, "maximum": 48, "hard_maximum": 62}
+  }
+}

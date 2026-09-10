@@ -1,0 +1,99 @@
+#!/usr/bin/env -S uv run --script
+# /// script
+# dependencies = ["pillow==11.3.0", "jsonschema==4.26.0"]
+# ///
+"""Create an immutable four-column labeled contact sheet from slide PNGs."""
+
+from __future__ import annotations
+
+import argparse
+import json
+import os
+import shutil
+import sys
+import tempfile
+from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+
+from render_support import atomic_json
+
+from contact_sheet_core import compute_grid_layout
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--slides", type=Path, required=True)
+    parser.add_argument("--manifest", type=Path, required=True)
+    parser.add_argument("--out", type=Path, required=True)
+    parser.add_argument("--columns", type=int, default=4)
+    args = parser.parse_args()
+    index_path = args.out.with_suffix(".index.json")
+    if args.columns != 4 or args.out.exists() or index_path.exists():
+        print("four columns are required and output must be new", file=sys.stderr)
+        return 2
+    from PIL import Image, ImageDraw, ImageFont, UnidentifiedImageError
+
+    try:
+        manifest = json.loads(args.manifest.read_text(encoding="utf-8"))
+        slide_ids = [slide["id"] for slide in manifest["slides"]]
+    except (OSError, ValueError, KeyError, TypeError) as exc:
+        print(f"invalid slide manifest: {exc}", file=sys.stderr)
+        return 2
+    images = []
+    try:
+        paths = sorted(
+            args.slides.glob("*.png"),
+            key=lambda path: (
+                not path.stem.isdecimal(),
+                int(path.stem) if path.stem.isdecimal() else path.stem,
+            ),
+        )
+        if len(paths) != len(slide_ids):
+            raise OSError("slide PNG count does not match manifest slide order")
+        for slide_id, path in zip(slide_ids, paths, strict=True):
+            image = Image.open(path)
+            image.load()
+            images.append((slide_id, path, image.convert("RGB")))
+    except (OSError, UnidentifiedImageError) as exc:
+        print(f"cannot read slide image: {exc}", file=sys.stderr)
+        return 3
+    if not images:
+        print("no readable PNG slides", file=sys.stderr)
+        return 2
+    layout = compute_grid_layout(
+        [(slide_id, path.name, image.width, image.height) for slide_id, path, image in images]
+    )
+    sheet = Image.new("RGB", (layout["width"], layout["height"]), "white")
+    draw = ImageDraw.Draw(sheet)
+    for (_, _, image), placement in zip(images, layout["placements"], strict=True):
+        x, y = placement["x"], placement["y"]
+        sheet.paste(image, (x, y))
+        draw.text(
+            (x + 4, y + image.height + 4), placement["slide_id"],
+            fill="black",
+            font=ImageFont.load_default(),
+        )
+    args.out.parent.mkdir(parents=True, exist_ok=True)
+    staging = Path(tempfile.mkdtemp(prefix=f".{args.out.name}.", dir=args.out.parent))
+    try:
+        candidate = staging / args.out.name
+        candidate_index = staging / index_path.name
+        sheet.save(candidate, "PNG")
+        atomic_json(
+            candidate_index,
+            layout,
+        )
+        # Index first, PNG last: a visible PNG is never presented without its index.
+        os.replace(candidate_index, index_path)
+        os.replace(candidate, args.out)
+    except OSError as exc:
+        print(f"cannot write contact sheet: {exc}", file=sys.stderr)
+        return 3
+    finally:
+        shutil.rmtree(staging, ignore_errors=True)
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

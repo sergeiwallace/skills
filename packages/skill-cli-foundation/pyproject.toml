@@ -1,0 +1,30 @@
+[project]
+name = "skill-cli-foundation"
+version = "0.1.0"
+description = "Shared Typer-based CLI foundation for ai-harness skill scripts (PROJECT-1234)"
+# Apache-2.0 because the whole repository is Apache-2.0 (PROJECT-1234 D-7, revised 2026-09-06 to a
+# single license; the earlier split licensed code under Apache-2.0 and instructional content under
+# CC BY 4.0). This field therefore restates the root license rather than selecting a half.
+#
+# The sibling `LICENSE` file stays even though the root now carries the same text: it is packaging
+# metadata, not a license boundary. Removing it still builds a wheel and exits 0, but silently drops
+# `dist-info/licenses/LICENSE`, leaving an artifact that declares Apache-2.0 with no license text.
+#
+# Declaring it here is load-bearing beyond metadata: a consumer of this library vendors it as a
+# wheel, and the vendoring side reads THIS field to decide whether the wheel may be
+# redistributed. While the field was absent, that check recorded
+# `UNLICENSED-do-not-distribute` and the consumer withheld its own distribution entirely.
+license = "Apache-2.0"
+license-files = ["LICENSE"]
+requires-python = ">=3.11"
+dependencies = [
+    "typer>=0.12",
+    "pydantic-settings>=2.2",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/skill_cli_foundation"]

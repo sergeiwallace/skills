@@ -1,0 +1,224 @@
+#!/usr/bin/env python3
+"""Render a manifest-validated Slidev deck into an immutable candidate run."""
+
+from __future__ import annotations
+
+import argparse
+import json
+import os
+import shutil
+import subprocess
+import sys
+import tempfile
+import uuid
+from pathlib import Path
+
+SKILL_ROOT = Path(__file__).resolve().parents[1]
+
+from render_support import (
+    atomic_json,
+    commit_directory,
+    digest_path,
+    digest_render_artifacts,
+    materialize_slidev_source,
+    validate_source_metadata,
+)
+
+from presentation import (
+    PresentationError,
+    validate_manifest,
+)
+from theme_support import materialize_theme
+
+
+def unavailable(message: str, expected: str = "") -> int:
+    print(message, file=sys.stderr)
+    try:
+        subprocess.run(
+            [
+                os.environ.get("PRESENTATION_NODE_BIN", "node"),
+                str(SKILL_ROOT / "scripts" / "presentation-toolchain.mjs"),
+                "--renderer-version",
+                expected,
+            ],
+            cwd=SKILL_ROOT,
+            check=False,
+        )
+    except OSError:
+        pass
+    return 3
+
+
+def version(binary: str) -> str | None:
+    try:
+        result = subprocess.run(
+            [binary, "--version"], text=True, capture_output=True, check=False
+        )
+    except OSError:
+        return None
+    if result.returncode:
+        return None
+    return result.stdout.strip().split()[-1].lstrip("v")
+
+
+def browser_cache_ready(cache: Path) -> bool:
+    """Require Playwright's pinned Chromium revision and a runnable binary."""
+    browsers = SKILL_ROOT / "node_modules" / "playwright-core" / "browsers.json"
+    try:
+        entries = json.loads(browsers.read_text(encoding="utf-8"))["browsers"]
+        revision = next(
+            item["revision"] for item in entries if item["name"] == "chromium"
+        )
+    except (OSError, json.JSONDecodeError, KeyError, StopIteration):
+        return False
+    root = cache / f"chromium-{revision}"
+    if sys.platform == "darwin":
+        candidates = (
+            root / "chrome-mac/Chromium.app/Contents/MacOS/Chromium",
+            root / "chrome-mac-arm64/Chromium.app/Contents/MacOS/Chromium",
+        )
+    elif sys.platform.startswith("win"):
+        candidates = (root / "chrome-win/chrome.exe", root / "chrome-win64/chrome.exe")
+    else:
+        candidates = (root / "chrome-linux/chrome", root / "chrome-linux64/chrome")
+    return any(path.is_file() and os.access(path, os.X_OK) for path in candidates)
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--manifest", type=Path, required=True)
+    parser.add_argument("--source", type=Path, required=True)
+    parser.add_argument("--runs", type=Path, required=True)
+    args = parser.parse_args()
+    try:
+        manifest = json.loads(args.manifest.read_text(encoding="utf-8"))
+        validate_manifest(manifest, args.manifest.parent)
+        validate_source_metadata(args.source, manifest)
+    except (OSError, json.JSONDecodeError, PresentationError) as exc:
+        print(f"invalid render input: {exc}", file=sys.stderr)
+        return 2
+    binary = os.environ.get("SLIDEV_BIN") or str(
+        SKILL_ROOT / "node_modules" / ".bin" / "slidev"
+    )
+    installed = version(binary)
+    if installed is None:
+        return unavailable(
+            "Slidev renderer is unavailable", manifest["renderer"]["version"]
+        )
+    expected = manifest["renderer"]["version"]
+    if installed != expected:
+        return unavailable(
+            f"Slidev version mismatch: expected {expected}, found {installed}", expected
+        )
+    override = os.environ.get("PLAYWRIGHT_BROWSERS_PATH")
+    cache = (
+        Path(override)
+        if override
+        else (
+            SKILL_ROOT
+            / ".cache"
+            / "presentation"
+            / "playwright"
+            / os.environ.get("PRESENTATION_PLAYWRIGHT_VERSION", "1.58.2")
+        )
+    )
+    if not browser_cache_ready(cache):
+        return unavailable(
+            f"Playwright browser cache is unavailable: {cache}", expected
+        )
+    args.runs.mkdir(parents=True, exist_ok=True)
+    run_id = uuid.uuid4().hex
+    staging = Path(tempfile.mkdtemp(prefix=f".{run_id}.", dir=args.runs))
+    render = staging / "render"
+    try:
+        html = render / "html"
+        slides = render / "slides"
+        html.mkdir(parents=True)
+        slides.mkdir()
+        theme = materialize_theme(manifest, args.manifest.parent, staging / "theme")
+        render_source = materialize_slidev_source(
+            args.source, manifest, staging / "slides.md"
+        )
+        commands = (
+            [
+                binary,
+                "build",
+                str(render_source),
+                "--theme",
+                str(theme),
+                "--out",
+                str(html),
+            ],
+            [
+                binary,
+                "export",
+                str(render_source),
+                "--theme",
+                str(theme),
+                "--output",
+                str(render / "deck.pdf"),
+            ],
+            [
+                binary,
+                "export",
+                str(render_source),
+                "--theme",
+                str(theme),
+                "--format",
+                "png",
+                "--output",
+                str(slides),
+            ],
+        )
+        statuses = []
+        for command in commands:
+            result = subprocess.run(
+                command,
+                text=True,
+                capture_output=True,
+                check=False,
+                env={**os.environ, "PLAYWRIGHT_BROWSERS_PATH": str(cache)},
+            )
+            statuses.append({"command": command, "returncode": result.returncode})
+            if result.returncode:
+                failed = args.runs / run_id / "failed-attempt.json"
+                atomic_json(
+                    failed,
+                    {
+                        "run_id": run_id,
+                        "children": statuses,
+                        "error": result.stderr[-4000:],
+                    },
+                )
+                return 4
+        if (
+            not any(html.iterdir())
+            or not (render / "deck.pdf").is_file()
+            or not list(slides.glob("*.png"))
+        ):
+            atomic_json(
+                args.runs / run_id / "failed-attempt.json",
+                {"run_id": run_id, "children": statuses, "error": "missing export"},
+            )
+            return 4
+        render_digest = digest_render_artifacts(render)
+        atomic_json(
+            render / "render-result.json",
+            {
+                "run_id": run_id,
+                "input_digest": digest_path(args.manifest),
+                "render_digest": render_digest,
+                "theme_digest": digest_path(theme),
+                "slides": [item["id"] for item in manifest["slides"]],
+            },
+        )
+        commit_directory(render, args.runs / run_id / "render")
+        shutil.rmtree(staging)
+        return 0
+    finally:
+        if staging.exists():
+            shutil.rmtree(staging)
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

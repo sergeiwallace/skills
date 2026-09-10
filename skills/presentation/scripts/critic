@@ -1,0 +1,172 @@
+#!/usr/bin/env python3
+"""Generate and commit one immutable, pixel-grounded visual-critic fragment."""
+
+from __future__ import annotations
+
+import argparse
+import hashlib
+import json
+import os
+import shlex
+import subprocess
+import sys
+import tempfile
+from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from presentation import PresentationError
+from qa_support import (
+    REQUIRED_RUBRIC_ITEMS,
+    commit_critic_fragment,
+    validate_critic_coverage,
+)
+from render_support import digest_render_artifacts
+
+SKILL_ROOT = Path(__file__).resolve().parents[1]
+REVIEW_SCHEMA = SKILL_ROOT / "schemas/critic-review.schema.json"
+REVIEWER_DISPATCH_ENV = "PRESENTATION_REVIEWER_DISPATCH"
+
+
+def _ordered_slide_images(
+    run: Path, input_digest: str, render_digest: str
+) -> tuple[list[Path], list[str]]:
+    result_path = run / "render/render-result.json"
+    try:
+        result = json.loads(result_path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as exc:
+        raise PresentationError("missing or invalid committed render result") from exc
+    if (
+        result.get("run_id") != run.name
+        or result.get("input_digest") != input_digest
+        or result.get("render_digest") != render_digest
+        or digest_render_artifacts(run / "render") != render_digest
+    ):
+        raise PresentationError("critic render binding does not match artifact bytes")
+    slide_ids = result.get("slides")
+    if (
+        not isinstance(slide_ids, list)
+        or not slide_ids
+        or not all(isinstance(slide_id, str) and slide_id for slide_id in slide_ids)
+    ):
+        raise PresentationError("render result lacks ordered slide IDs")
+    images = sorted(
+        (run / "render/slides").glob("*.png"),
+        key=lambda path: (
+            not path.stem.isdecimal(),
+            int(path.stem) if path.stem.isdecimal() else path.stem,
+        ),
+    )
+    if len(images) != len(slide_ids):
+        raise PresentationError("slide PNG count does not match render result")
+    return images, slide_ids
+
+
+def _pixel_review(
+    run: Path,
+    input_digest: str,
+    render_digest: str,
+) -> dict:
+    dispatch = os.environ.get(REVIEWER_DISPATCH_ENV, "").strip()
+    if not dispatch:
+        raise PresentationError(
+            f"{REVIEWER_DISPATCH_ENV} is not set; configure a visual-review adapter "
+            "that accepts --output-schema, -o, repeatable -i image paths, and a prompt"
+        )
+    try:
+        command = shlex.split(dispatch)
+    except ValueError as exc:
+        raise PresentationError(
+            f"{REVIEWER_DISPATCH_ENV} is not a valid command: {exc}"
+        ) from exc
+    if not command:
+        raise PresentationError(f"{REVIEWER_DISPATCH_ENV} is not a valid command")
+    slide_images, slide_ids = _ordered_slide_images(run, input_digest, render_digest)
+    attachments: list[Path] = []
+    contact_sheet = run / "qa/contact-sheet.png"
+    if contact_sheet.is_file():
+        attachments.append(contact_sheet)
+    attachments.extend(slide_images)
+    mapping = "\n".join(
+        f"- {image.name}: {slide_id}"
+        for image, slide_id in zip(slide_images, slide_ids, strict=True)
+    )
+    rubric = ", ".join(REQUIRED_RUBRIC_ITEMS)
+    prompt = f"""Review the attached rendered slide pixels. Do not substitute DOM facts or source-code inspection for what is visibly rendered. The optional contact sheet shows whole-deck rhythm; every numbered PNG is also attached at full slide resolution.
+
+Render digest: {render_digest}
+Slide image mapping:
+{mapping}
+
+Return only one JSON object matching the supplied schema. Set reviewed_artifact_digest to the exact render digest above and identify the actual reviewer as {{\"type\": \"agent\", \"name\": \"...\"}}. Judge every one of these rubric items at deck level and for at least three representative slides: {rubric}. Base every note and finding on visible pixel evidence. Use pass or fail honestly; every failed judgment must have a corresponding finding. A finding without a confidently identified image must use an empty slide_id. Do not claim that DOM, links, keyboard controls, animation, or presenter behavior were visually tested from static pixels."""
+    command.extend(["--output-schema", str(REVIEW_SCHEMA)])
+    with tempfile.TemporaryDirectory(prefix="presentation-critic-") as directory:
+        output = Path(directory) / "review.json"
+        command.extend(["-o", str(output)])
+        for image in attachments:
+            command.extend(["-i", str(image)])
+        command.append(prompt)
+        completed = subprocess.run(
+            command,
+            cwd=SKILL_ROOT,
+            env=dict(os.environ),
+            text=True,
+            capture_output=True,
+            check=False,
+        )
+        if completed.stderr:
+            print(completed.stderr, file=sys.stderr, end="")
+        if completed.returncode:
+            if completed.stdout:
+                print(completed.stdout[-4000:], file=sys.stderr, end="")
+            raise PresentationError(
+                f"visual reviewer dispatch failed with exit {completed.returncode}"
+            )
+        try:
+            review = json.loads(output.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError) as exc:
+            raise PresentationError("visual reviewer returned invalid JSON") from exc
+    if not isinstance(review, dict):
+        raise PresentationError("visual reviewer response must be a JSON object")
+    review["review_basis"] = {
+        "type": "rendered_pixels",
+        "dispatch": dispatch,
+        "images": [
+            {
+                "path": image.relative_to(run).as_posix(),
+                "sha256": hashlib.sha256(image.read_bytes()).hexdigest(),
+            }
+            for image in attachments
+        ],
+    }
+    validate_critic_coverage(review, render_digest)
+    return review
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--run", type=Path, required=True)
+    parser.add_argument("--input-digest", required=True)
+    parser.add_argument("--render-digest", required=True)
+    parser.add_argument(
+        "--review",
+        type=Path,
+        help="commit an externally produced review (tests/legacy); omit to dispatch the configured visual reviewer",
+    )
+    args = parser.parse_args()
+    try:
+        review = (
+            json.loads(args.review.read_text(encoding="utf-8"))
+            if args.review
+            else _pixel_review(args.run, args.input_digest, args.render_digest)
+        )
+        if not isinstance(review, dict):
+            raise PresentationError("critic review must be a JSON object")
+        commit_critic_fragment(args.run, args.input_digest, args.render_digest, review)
+        return 0
+    except (OSError, json.JSONDecodeError, PresentationError) as exc:
+        print(str(exc), file=sys.stderr)
+        return 2
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
