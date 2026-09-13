@@ -1,7 +1,7 @@
 {
-  "candidate_file_digest": "sha256:5421d46c505da5aabf124ad29e38ab36b43a2f66cbd55c17f3f8f62a67044f69",
+  "candidate_file_digest": "sha256:e222309491214e3aa1bcea46440a1375f1bb1d6d8f7ce070dd8c556a106ce7de",
   "catalog_revision": "HEAD",
-  "catalog_selection_digest": "sha256:9990f277bab25bde0eee5a9b3d04ff7642faded60ea8bec5f355eeed243447a0",
+  "catalog_selection_digest": "sha256:372dbef8a27e4ba4294405c7931963431a5457dabfca5daf6e44db1515e6827c",
   "files": {
     "LICENSE": "sha256:cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30",
     "NOTICE": "sha256:73d06c99c097121c028f76642a1464aef28534ddc5819cb8d5d1d32fe01cddf5",
@@ -31,7 +31,6 @@
     "skills/graphic/scripts/package.json": "sha256:d558b65930b7c7465f990baabcf7052f092478193458fce2c3ddb15a51c47ee5",
     "skills/graphic/scripts/resvg_contact_sheet.mjs": "sha256:45661c4304933910ec09bdac4d82064c0eecc40e4f158499d7c6909ee30d3b74",
     "skills/graphic/scripts/svg_allowlist.py": "sha256:671da9741378039aedd20c51860a11ebd5fdfc2340fa8f175d678e619aefbdba",
-    "skills/honest/SKILL.md": "sha256:ba7520b41f4b3ba77cc5218e5b01393c19a8dd5b0d72cc751b19579463a6c5eb",
     "skills/jira/SKILL.md": "sha256:4d957e9bdd4a59522b791858d3cf61aa66a29fceec328cab6ed89b652471d19a",
     "skills/meeting-analysis/SKILL.md": "sha256:6ae3715caa5fec2cc1283347958331a3d0307790f9cfb57a2668594392e9601e",
     "skills/meeting-analysis/scripts/README.md": "sha256:c336326eb4e2c1142624422bd0666ffe19fc88c0ca6ae0cb98385694c97ac46f",
@@ -146,7 +145,6 @@
     "clean-task-panel",
     "explain",
     "graphic",
-    "honest",
     "jira",
     "report-feedback",
     "presentation",
