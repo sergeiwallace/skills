@@ -1,0 +1,21 @@
+{
+  "metadata": {
+    "description": "Public projection of the ai-harness skills catalog",
+    "version": "874666bd75c364dcd17dcfaaea81d73469b04281"
+  },
+  "name": "skills",
+  "owner": {
+    "name": "sergeiwallace"
+  },
+  "plugins": [
+    {
+      "description": "Public projection of the ai-harness skills catalog",
+      "name": "skills",
+      "skills": [
+        "./skills"
+      ],
+      "source": ".",
+      "version": "874666bd75c364dcd17dcfaaea81d73469b04281"
+    }
+  ]
+}
