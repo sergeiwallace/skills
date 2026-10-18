@@ -50,6 +50,8 @@ assets, so copying only a `skills/<name>/` directory is not a universal installa
 The descriptions below come from each skill's `SKILL.md` frontmatter. Every public skill is licensed
 under Apache-2.0; requirements are shown only when they materially affect use.
 
+<!-- GENERATED:CATALOG:START -->
+
 | Skill | Description | Requirements | Install |
 | --- | --- | --- | --- |
 | [`clean-task-panel`](skills/clean-task-panel/) | Remove all completed tasks from the CC TUI task panel. | Claude Code task-panel tools | `gh skill install sergeiwallace/skills clean-task-panel --agent claude-code --scope user` |
@@ -63,6 +65,8 @@ under Apache-2.0; requirements are shown only when they materially affect use.
 | [`spec`](skills/spec/) | Present an implementation plan for review before making changes | — | `gh skill install sergeiwallace/skills spec --agent claude-code --scope user` |
 | [`summarize`](skills/summarize/) | Faithfully compress caller-selected documents, issues, code, topic packets, or explicit session batches for a declared reader and purpose. | — | `gh skill install sergeiwallace/skills summarize --agent claude-code --scope user` |
 | [`sync-git`](skills/sync-git/) | Safely synchronize safe uncommitted work and local/remote branch state across selected repositories and worktrees; discard and gitignore recommendations always require human approval. | Git and `uv` | `gh skill install sergeiwallace/skills sync-git --agent claude-code --scope user` |
+
+<!-- GENERATED:CATALOG:END -->
 
 ## How skills work
 
