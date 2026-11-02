@@ -9,8 +9,8 @@
 #
 # [tool.uv.sources]
 # # Path stays INSIDE the symlinked skills tree (never escapes via ../../../) --
-# # resolves whether invoked by real path or through the ~/.claude/skills symlink
-# # (PROJECT-1234 finding D). Editable so the shared lib is live-edited, no publish cycle.
+# # Relative to this file, so it resolves from a checkout of the skills repository.
+# # Editable so the shared lib is live-edited, no publish cycle.
 # skill-cli-foundation = { path = "../../../packages/skill-cli-foundation", editable = true }
 # ///
 """Deterministic half of the /meeting-analysis skill: kind selection and path derivation.
@@ -42,7 +42,6 @@ from __future__ import annotations
 import dataclasses
 import hashlib
 import json
-import os
 import re
 import zipfile
 from pathlib import Path
@@ -56,11 +55,13 @@ app = make_app("meeting-analysis")
 
 DEFAULT_CONFIG_PATH = Path.home() / ".config" / "meeting-analysis" / "config.toml"
 
-# The repo this script itself ships in, derived from its own resolved location.
-# .resolve() is required, not cosmetic: ~/.claude/skills (or ~/.claude/skills/<skill>)
-# is a symlink into a repo's skills/ tree, so without it the parents walk lands in
-# ~/.claude and the skill's own templates are invisible.
-SKILL_REPO_ROOT = Path(os.environ["CLAUDE_PLUGIN_ROOT"]) / "assets"
+# The fallback template root: the templates this skill bundles under its own assets/,
+# found from this file's resolved location. .resolve() is required, not cosmetic: a
+# skills directory is often a symlink, and without it the parents walk lands beside the
+# link and the bundled templates are invisible. Bundling them inside the skill keeps the
+# fallback working however the skill was installed: as a plugin, as a single skill, or as
+# a copy vendored into another repository.
+SKILL_REPO_ROOT = Path(__file__).resolve().parents[1] / "assets"
 
 # --------------------------------------------------------------------------- kinds
 
@@ -88,7 +89,7 @@ KINDS: dict[str, Kind] = {
         slug_stem="standup-analysis",
         meeting_type="standup",
         template_relpath="docs/meetings/TEMPLATE.md",
-        template_version="meeting-analysis-1.1.0",
+        template_version="meeting-analysis-1.2.0",
     ),
     STANDUP_UPDATE: Kind(
         name=STANDUP_UPDATE,
@@ -245,9 +246,19 @@ class MeetingPaths:
     date: str
     slug: str
     kind: Kind
+    # The date directories' parent when the caller names it (`--meeting-root`), so a
+    # meeting can live outside docs/meetings/<group>/<author>/; None derives it.
+    meeting_root: Path | None = None
+    # The meeting directory itself when the caller names it (`--meeting-dir`): an ad hoc
+    # meeting's `docs/meetings/<slug>-<date>`, which carries no separate date segment.
+    meeting_dir: Path | None = None
 
     @property
     def date_dir(self) -> Path:
+        if self.meeting_dir is not None:
+            return self.repo_root / self.meeting_dir
+        if self.meeting_root is not None:
+            return self.repo_root / self.meeting_root / self.date
         return self.repo_root / "docs" / "meetings" / self.group / self.author / self.date
 
     @property
@@ -291,11 +302,24 @@ def derive_paths(
     series: str,
     group: str = "standups",
     slug: str | None = None,
+    meeting_root: Path | None = None,
+    meeting_dir: Path | None = None,
 ) -> MeetingPaths:
-    """Build the path set, refusing anything the convention does not cover."""
+    """Build the path set, refusing anything the convention does not cover.
+
+    With `meeting_root` the date directory is `<meeting_root>/<date>` (relative to the
+    repo root unless absolute), and the author, which then names no path segment, may
+    be empty. With `meeting_dir` that directory is named outright, the shape of an ad hoc
+    meeting (`docs/meetings/<slug>-<date>`), and `slug` must be given. Without either the
+    derivation is `docs/meetings/<group>/<author>/<date>`.
+    """
     date = validate_date(date)
     author_seg = kebab(author)
-    if not author_seg:
+    if meeting_dir is not None and meeting_root is not None:
+        raise MeetingPathError("pass --meeting-dir or --meeting-root, not both")
+    if meeting_dir is not None and slug is None:
+        raise MeetingPathError("--meeting-dir needs an explicit --slug (an ad hoc meeting's is <slug>-<date>)")
+    if not author_seg and meeting_root is None and meeting_dir is None:
         raise MeetingPathError("author must contain at least one alphanumeric character")
     if slug is None:
         # Only the standups group has documented slug stems. Inventing one for
@@ -308,7 +332,7 @@ def derive_paths(
                 f"'{KINDS[STANDUP_UPDATE].slug_stem}', both under 'standups')"
             )
         if not series:
-            raise MeetingPathError("--series is required to derive a slug (e.g. 'project-sync')")
+            raise MeetingPathError("--series is required to derive a slug (e.g. 'team')")
         slug = kind.slug(kebab(series), date)
     return MeetingPaths(
         repo_root=repo_root,
@@ -317,6 +341,8 @@ def derive_paths(
         date=date,
         slug=slug,
         kind=kind,
+        meeting_root=meeting_root,
+        meeting_dir=meeting_dir,
     )
 
 
@@ -341,12 +367,18 @@ def existing_doc_conflict(paths: MeetingPaths) -> str | None:
 # ----------------------------------------------------------------- zip extraction
 
 
+_GIT_CONTROL_FILES = frozenset({".git", ".gitignore", ".gitattributes", ".gitmodules"})
+
+
 def safe_members(zf: zipfile.ZipFile) -> list[zipfile.ZipInfo]:
     """Regular file members with no path traversal and no directory nesting.
 
     Vendor bundles are flat. Anything absolute, or containing '..', or nested, is
     rejected rather than normalized: a zip that does not look like a vendor bundle
     is a thing to look at, not to silently reshape.
+
+    A git control file is rejected too. data/ is committed evidence, so a bundle's
+    `.gitignore` landing there would silently drop the sources the doc cites.
     """
     keep: list[zipfile.ZipInfo] = []
     for info in zf.infolist():
@@ -356,6 +388,8 @@ def safe_members(zf: zipfile.ZipFile) -> list[zipfile.ZipInfo]:
         as_path = Path(name)
         if as_path.is_absolute() or ".." in as_path.parts:
             raise MeetingPathError(f"refusing unsafe zip member path: {name!r}")
+        if as_path.name.casefold() in _GIT_CONTROL_FILES:
+            raise MeetingPathError(f"refusing git control file in zip: {name!r}")
         keep.append(info)
     return keep
 
@@ -586,7 +620,7 @@ RepoRootOption = Annotated[Path, typer.Option("--repo-root", help="Repo the doc 
 SourcesOption = Annotated[Path | None, typer.Option("--sources", help="Directory of already-extracted sources")]
 AuthorOption = Annotated[str | None, typer.Option("--author", help="Author name, kebab-cased for the path")]
 DateOption = Annotated[str, typer.Option("--date", help="Meeting date, YYYY-MM-DD")]
-SeriesOption = Annotated[str | None, typer.Option("--series", help="Series name for the slug, e.g. project-sync")]
+SeriesOption = Annotated[str | None, typer.Option("--series", help="Series name for the slug, e.g. team")]
 GroupOption = Annotated[str | None, typer.Option("--group", help="Meeting-type directory, e.g. standups")]
 SlugOption = Annotated[
     str | None, typer.Option("--slug", help="Override the derived slug (required outside standups/)")
@@ -596,6 +630,20 @@ KindOption = Annotated[
 ]
 JsonOption = Annotated[bool, typer.Option("--json", help="Machine-readable output")]
 ConfigOption = Annotated[Path, typer.Option("--config", help="Per-user TOML holding the layered defaults")]
+MeetingRootOption = Annotated[
+    Path | None,
+    typer.Option(
+        "--meeting-root",
+        help="The date directories' parent, relative to --repo-root; replaces docs/meetings/<group>/<author>",
+    ),
+]
+MeetingDirOption = Annotated[
+    Path | None,
+    typer.Option(
+        "--meeting-dir",
+        help="The meeting directory itself, relative to --repo-root: an ad hoc meeting's <slug>-<date>; needs --slug",
+    ),
+]
 
 
 def build_plan(
@@ -608,6 +656,8 @@ def build_plan(
     group: str,
     slug: str | None,
     kind_override: str | None,
+    meeting_root: Path | None = None,
+    meeting_dir: Path | None = None,
 ) -> dict:
     """Resolve kind, template, paths and source inventory into one report."""
     sources: list[Source] = []
@@ -627,6 +677,8 @@ def build_plan(
         series=series,
         group=group,
         slug=slug,
+        meeting_root=meeting_root,
+        meeting_dir=meeting_dir,
     )
     return {
         "kind": kind.name,
@@ -680,6 +732,8 @@ def plan(
     kind: KindOption = None,
     json_output: JsonOption = False,
     config: ConfigOption = DEFAULT_CONFIG_PATH,
+    meeting_root: MeetingRootOption = None,
+    meeting_dir: MeetingDirOption = None,
 ) -> None:
     """Resolve kind, paths and source inventory for one meeting."""
     settings = resolve_settings(author=author, series=series, group=group, config_path=config)
@@ -693,6 +747,8 @@ def plan(
             group=settings.group,
             slug=slug,
             kind_override=kind,
+            meeting_root=meeting_root,
+            meeting_dir=meeting_dir,
         )
     except MeetingPathError as exc:
         raise _fail(str(exc)) from exc

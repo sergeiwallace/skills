@@ -508,7 +508,7 @@ Mechanical, in order, so it does not depend on how the writer feels about the dr
 6. Every delay is attributed to a prerequisite, not a person.
 7. Every load-bearing measurement is still in the body, and everything moved out is linked.
 8. Every significant thing carries its official name, its identifier and a link.
-9. ASCII only, and no internal tracking identifiers. The reference for teammates is the Jira key.
+9. ASCII only, and no internal tracking identifiers. The reference for teammates is the public tracker key.
 10. The table of contents lists every heading that matters, and its anchors resolve.
 11. A sample relative link resolves **from this document's own directory**, not from the repo root.
 12. The revision log has a new row.
@@ -557,6 +557,6 @@ that distinction is usually the reader's next question.
 
 ### Audience rules
 
-Teammate-visible, so: ASCII only, no internal dev-tracking identifiers (use the Jira key), and no
+Teammate-visible, so: ASCII only, no internal dev-tracking identifiers (use the public tracker key), and no
 raw resource identifiers where a name reads better. Plain direct language, short paragraphs.
 -->

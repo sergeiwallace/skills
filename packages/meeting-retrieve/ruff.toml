@@ -1,0 +1,26 @@
+# Ruff config for this shared package ONLY.
+#
+# The package is part of a vendored unit copied byte-for-byte into consumer repositories,
+# and ruff resolves configuration hierarchically -- the closest ruff.toml or pyproject.toml
+# in a file's ancestor directories wins. Without this file a consumer's root config governs
+# the copy, and a consumer with other rules or another line length reports violations in
+# code nobody there may edit, or its formatter rewraps the copy and forks it from the
+# canonical one. This pins the settings the package is written to, so both repositories
+# lint and format it identically.
+#
+# The values restate the canonical repository's root ruff settings: line length 88, its
+# lint selection and its complexity ceiling.
+line-length = 88
+# The package's own floor (requires-python >=3.11). Without this, ruff infers the target
+# from the nearest pyproject.toml's requires-python, and a consumer on a newer floor has
+# the copy rewritten into syntax this package's older interpreters cannot parse.
+target-version = "py311"
+
+[lint]
+select = ["E4", "E7", "E9", "F", "C901", "PLR", "ERA", "ARG", "B"]
+# Keeps the `# noqa: S603` and `# noqa: S101` directives alive as directives for a run that
+# enables the security rules, rather than letting RUF100 call them unused and delete them.
+external = ["S603", "S101"]
+
+[lint.mccabe]
+max-complexity = 10

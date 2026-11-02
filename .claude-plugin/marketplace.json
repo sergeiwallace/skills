@@ -1,7 +1,7 @@
 {
   "metadata": {
     "description": "Public projection of the ai-harness skills catalog",
-    "version": "874666bd75c364dcd17dcfaaea81d73469b04281"
+    "version": "356337c57eb955a943ac1ef7c6d6de145ed6fcc1"
   },
   "name": "skills",
   "owner": {
@@ -15,7 +15,7 @@
         "./skills"
       ],
       "source": ".",
-      "version": "874666bd75c364dcd17dcfaaea81d73469b04281"
+      "version": "356337c57eb955a943ac1ef7c6d6de145ed6fcc1"
     }
   ]
 }

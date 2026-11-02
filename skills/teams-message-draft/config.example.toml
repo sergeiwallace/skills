@@ -1,0 +1,28 @@
+# Where each project's rolling Teams message drafts doc lives.
+#
+# Copy this file to ~/.config/teams-message-draft/config.toml, or anywhere else named by
+# TEAMS_DRAFTS_CONFIG, and edit the copy. scripts/teams_drafts.py reads it at call time, so a
+# change applies to the next call with no reinstall.
+#
+# Precedence, highest first:
+#   1. flags:        --project, --repo, --file, --profile, --config
+#   2. environment:  TEAMS_DRAFTS_PROJECT, TEAMS_DRAFTS_REPO, TEAMS_DRAFTS_FILE,
+#                    TEAMS_DRAFTS_PROFILE, TEAMS_DRAFTS_CONFIG (the file to read)
+#   3. [profiles.<TEAMS_DRAFTS_PROFILE>] tables below, which override any key of [defaults]
+#   4. [defaults]
+#
+# `repo` is the drafts repo's main checkout; `~` and $VARS expand. Edit the doc in a git
+# worktree of that repo and pass the worktree with --repo, because archive refuses a main
+# working tree. `drafts_file` and `screenshots_dir` are relative to the repo.
+
+[defaults]
+project = "example"
+
+[defaults.projects.example]
+repo = "~/work/example-notes"
+drafts_file = "docs/teams-chats/example-teams-message-drafts.md"
+screenshots_dir = "docs/teams-chats/screenshots"
+
+# Example profile override, selected with TEAMS_DRAFTS_PROFILE=laptop or --profile laptop:
+# [profiles.laptop.projects.example]
+# repo = "~/src/example-notes"

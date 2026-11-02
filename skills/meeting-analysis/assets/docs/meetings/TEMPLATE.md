@@ -13,7 +13,8 @@ sources:
   - "data/<file>.mp4 (MM:SS, WIDTHxHEIGHT) - git-ignored, local only"
   - "derived/asr-*.jsonl (independent local ASR pass, N segments)"
   - "frames/ (N extracted frames) - git-ignored, local only"
-template_version: "meeting-analysis-1.1.0"
+  - "data/<file> chat.md (the meeting chat, N messages, N attached files)"
+template_version: "meeting-analysis-1.2.0"
 ---
 
 <!-- WHICH KIND OF DOCUMENT IS THIS? This template is for a RECORDING ANALYSIS: written AFTER the
@@ -99,6 +100,33 @@ Include topics never raised at all if their absence is itself notable - dates, s
 **[FILL: Note explicitly if no action item carries a real date, and whether anything was assigned
 to someone who never verbally accepted it. Both are common and both matter for follow-up.]**
 
+### Consolidated action items
+
+<!-- Every action item from EVERY source, after consolidation: the transcript and recording
+     (spoken commitments and asks), the Loop notes' Follow-up tasks, the AI Summary and the
+     meeting chat. An item may appear in only one source. Owner, source and evidence per row;
+     NO task-tracker ids here (this doc is teammate-visible and the gates refuse internal ids):
+     the tracker rows live in the tracker and in the review hand-off. Row ids A-N are local. -->
+
+| # | Action item | Owner | Source(s) | Evidence | Consolidation |
+|---|-------------|-------|-----------|----------|---------------|
+| A-1 | [FILL: what is to be done, as one piece of work] | [FILL: who accepted it, or "unassigned"] | [FILL: transcript / notes follow-up row N / AI Summary / chat] | [FILL: MM:SS, row, or chat time] | [FILL: "merged with the notes' row 3 and the AI Summary's second task: one deliverable, one owner" / "kept apart from A-2: different owner" / "-"] |
+
+**[FILL: one line on how many items each source contributed and how many were merged; name any
+merge or split that needed a decision and where it is shown.]**
+
+---
+
+## Proposed issue-tracker issues
+
+<!-- Proposed, NOT created, unless the user asked in this run. One row per issue; several small
+     items of one owner may share an issue when they ship together. Name an existing tracker
+     issue instead of re-proposing it. Public tracker keys are the only tracker ids allowed here. -->
+
+| # | Summary | Type | Suggested parent epic | Suggested assignee | Covers | Rationale |
+|---|---------|------|-----------------------|--------------------|--------|-----------|
+| J-1 | [FILL: issue summary as it would read in the tracker] | [FILL: Epic / Story / Task / Bug] | [FILL: the parent key or "new epic: ..."] | [FILL: name] | [FILL: A-1, A-3] | [FILL: why this is one issue, and why it is worth tracking at all] |
+
 ---
 
 ## Open questions
@@ -176,6 +204,27 @@ about the code can itself be wrong.]
 [FILL: DELETE if there was no notes export. An AI-generated recap carries its own disclaimer.
 Flag: content belonging to a different meeting in the same file, and decisions asserted more
 confidently than the transcript supports.]
+
+---
+
+## Meeting chat
+
+<!-- Every relevant message of the meeting's Teams chat, from `data/<file> chat.md`, in the order
+     sent, each with its sender and local time. Keep the message's own formatting: a Teams reply
+     quote is a quote OF THE ORIGINAL MESSAGE with its sender (never a bare Markdown quote), a
+     link keeps its text and its exact, working URL, emphasis keeps its marks. Each attached file
+     is named with its path under data/. Say which messages were left out and why (joins,
+     reactions, unrelated chatter). -->
+
+[FILL: one line: N messages on the day, N kept here, N attached files copied to `data/`.]
+
+**HH:MM Sender** -- [FILL: the message, formatting kept. A reply quote reads:]
+
+> Teams reply quote of [FILL: Sender], HH:MM: [FILL: the original message's text]
+
+[FILL: the reply itself.]
+
+- Attachment: [FILL: `data/<file name>`], posted by [FILL: Sender] at HH:MM.
 
 ---
 
