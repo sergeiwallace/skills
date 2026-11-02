@@ -1,0 +1,122 @@
+# Settings for the /teams skill (scripts/teams.py and scripts/meeting.py).
+#
+# Copy this file to ~/.config/teams-skill/teams.toml, or anywhere else named by TEAMS_CONFIG,
+# and edit the copy. It is read at call time on every command, so an edit applies to the next
+# call with no reinstall and no session restart.
+#
+# Precedence, highest first:
+#   1. command-line flags (--title, --tz, --out-root, --chromium, ...)
+#   2. TEAMS_CONFIG: the settings file to read, in place of ~/.config/teams-skill/teams.toml
+#      (teams.py's --config wins over it)
+#   3. [profiles.<TEAMS_PROFILE>] tables below, which override any key of [defaults]
+#   4. [defaults]
+#
+# A second tenant or machine adds a [profiles.<name>] table and sets TEAMS_PROFILE=<name>, or
+# keeps its own file through TEAMS_CONFIG, instead of editing a value into the script.
+
+[defaults]
+# Where the four Teams web-client tokens come from. "json-file" reads [defaults.json-file].path,
+# a file a token broker writes. Anything else is "<module>:<callable>", a broker adapter: see
+# "Plugging in a token broker" in the skill's SKILL.md.
+provider = "json-file"
+# Directory added to sys.path before a "<module>:<callable>" provider is imported. Optional.
+provider_path = ""
+
+# Printed whenever a call is not authenticated (exit 4). Name the broker's own sign-in command.
+login_hint = "Refresh the token file: run your token broker's sign-in, then retry."
+
+# Chat-service region, used when the provider does not return one.
+region = ""
+# The async media gateway's region prefix (<gateway_region>-prod.asyncgw.teams.microsoft.com).
+gateway_region = "us"
+
+# Local dates are dates in this IANA zone, so an evening message stored as the next UTC day
+# still counts as the meeting day.
+timezone = "UTC"
+
+# File name stem for the dated artefacts: "<title> <YYYY-MM-DD>.vtt" and so on.
+title = "Meeting"
+
+# Where `land` writes, when --out-root is not given: <out_root>/<date>/data for the artefacts and
+# <out_root>/<date>/derived for the composed HTML `land --ai-summary` renders to PDF. A relative
+# path is relative to the current directory.
+out_root = "meetings"
+
+# The H1 the AI summary goes under, and the heading it is inserted before.
+summary_heading = "AI Summary"
+anchor_heading = "Follow-up tasks"
+
+# Headless Chromium for the local PDF render. Empty: Playwright's headless shell, found by glob.
+chromium = ""
+
+# Vanity hosts that serve the tenant's SharePoint or OneDrive, besides *.sharepoint.com.
+sharepoint_hosts = []
+
+# `recap-summary`: the remote-debugging port of the Chromium-family browser it attaches to,
+# where you are signed in to Teams web. 0 means unset: pass --port instead.
+cdp_port = 0
+# The hosts of the Teams web tab it reads. A subdomain of one matches too.
+recap_tab_hosts = ["teams.cloud.microsoft"]
+
+# --- Named meetings: scripts/meeting.py (the shared meeting front end) reads the keys below
+# and the [meetings.*] tables; teams.py ignores them. The front end also takes `tz` here, and
+# without it leaves local dates to `timezone` above.
+#
+# Author name for the analysis doc's path and frontmatter.
+author = ""
+# Printed when `land` exits 1 because the Loop page has no AI Summary: the step that gets the
+# Recap's AI Summary text into the inbox file. {chat} {date} {title} {inbox} are filled in.
+ai_summary_request = "uv run --script skills/teams/scripts/teams.py recap-summary --chat '{chat}' --date {date} --out '{inbox}'"
+# Where landed artefacts may go. The output must always be a git work tree; these narrow it to
+# named repositories (empty: any) and to a meeting directory under a repo-relative path (empty:
+# any). For example:
+# allowed_repos = ["example-notes", "example-workspace"]
+# meetings_prefix = "docs/meetings"
+allowed_repos = []
+meetings_prefix = ""
+
+[defaults.json-file]
+# A JSON object with keys chat_service, ic3, graph, sharepoint and (optionally) region.
+# `~` and $VARS expand. Keep it outside every git work tree, readable by you only (chmod 600).
+path = "~/.config/teams-skill/tokens.json"
+
+# Example profile override, selected with TEAMS_PROFILE=example-profile:
+# [profiles.example-profile]
+# provider = "example_broker_adapter:teams_tokens"
+# provider_path = "~/work/broker-adapters"
+# login_hint = "Run: example-broker login"
+# timezone = "America/New_York"
+# title = "[Team] Stand-up"
+# out_root = "docs/meetings/standups/example-author"
+# sharepoint_hosts = ["files.example.com"]
+
+# --- One table per named meeting, for scripts/meeting.py. `meeting <name>` lands the newest
+# instance; --date (and --time, when a day has several) picks an older one.
+#   chat or conv   the chat's exact title, or its conversation id (conv wins)
+#   title          file name stem (default: the chat title)
+#   repo           the output repository's name: the current one, or the directory of that
+#                  name beside it (--repo names another, --repo-path overrides both)
+#   root           the date directories' parent, relative to that repository
+#   meeting_type, series   the analysis doc's frontmatter and slug inputs
+#   time           optional HH:MM, picks among several instances on one day
+#   tz             optional IANA zone for this meeting
+#   aliases        other names that select this table
+#   slug           optional "<stem>-{date}" for meetings outside the standups group
+
+[meetings.team-standup]
+chat = "Team Stand-up"
+title = "Team Stand-up"
+repo = "example-notes"
+root = "docs/meetings/standups/example-author"
+meeting_type = "standup"
+series = "team"
+aliases = ["standup"]
+
+[meetings.weekly-review]
+chat = "Weekly Review"
+repo = "example-notes"
+root = "docs/meetings/reviews/example-author"
+meeting_type = "review"
+series = "weekly"
+aliases = ["review"]
+slug = "weekly-review-analysis-{date}"

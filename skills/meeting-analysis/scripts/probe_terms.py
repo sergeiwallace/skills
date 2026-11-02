@@ -3,14 +3,14 @@
 
 Follow-up to transcript_diff.py. That script tells you WHICH terms are suspect; this one shows
 them in context from both sources at once, which is what actually settles a mishearing. Reading
-"top grade" next to the ASR's "top braid layer" in the same 24-second window is the evidence.
+"quill mart" next to the ASR's "quill mark layer" in the same 24-second window is the evidence.
 
 The terms are supplied per meeting, because they come out of the previous step. Deduplicates to
 one hit per term per 30-second bucket, so a term repeated in a single exchange does not flood the
 output.
 
 Usage:
-    python probe_terms.py TRANSCRIPT_VTT ASR_JSONL --terms "top grade" "top rate" mdbase
+    python probe_terms.py TRANSCRIPT_VTT ASR_JSONL --terms "quill mart" "kill mark" quillmark
     python probe_terms.py TRANSCRIPT_VTT ASR_JSONL --terms-file suspects.txt
 
 Terms are matched case-insensitively as substrings, so a trailing space is meaningful:
