@@ -65,8 +65,9 @@ the read to confirm before continuing.
    (every message of the day with sender and local time, oldest first, reply quotes as quotes of
    the original message with its sender, links with their text and exact URL) and copies each
    attached file into `data/` under its own name. The `teams` skill's `land` does not write that
-   file, so read the day's messages with its `thread --conv ID --date D --json` command, save them
-   as `data/<title> <date> chat.md` in that shape, and say in provenance how the chat was read.
+   file. Read the day's messages with its `thread --conv ID --date D --json` command (id, local
+   time and sender per message, with an excerpt) and `messages --conv ID` (the full text), save
+   them as `data/<title> <date> chat.md` in that shape, and say in provenance how the chat was read.
 
 The deterministic parts (which doc kind, where it goes, what each source is, whether one is already
 there) are done by `meeting_resolve.py` so they are not re-derived by hand each meeting. The
@@ -87,7 +88,6 @@ vendored copy inside a repo that carries meeting docs of its own.
 - **The scripts are shared; the SKILL.md need not be.** The vendored unit is `scripts/**`, the
   bundled templates under `assets/`, and the shared `skill-cli-foundation` package. A consumer may
   write its own SKILL.md to carry its organisation's meetings, transport and worked examples.
-
 - **Templates are resolved from the CURRENT repo first.** `meeting_resolve.py plan` prefers the
   working repo's committed `docs/meetings/TEMPLATE.md` (or `docs/meetings/standups/TEMPLATE.md`),
   because that is the copy a teammate reading the repo on the web will open and the copy the doc's
