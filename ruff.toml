@@ -1,0 +1,24 @@
+# Repository-wide ruff settings for code without a closer ruff.toml of its own
+# (packages/meeting-retrieve and skills/meeting-analysis/scripts carry theirs).
+#
+# Pinned rather than left to ruff's built-in defaults, so `make lint` gives the same
+# answer on every machine and every ruff release. The selection is the correctness
+# floor; the `noqa` codes some files carry for stricter configurations stay valid as
+# directives through `external`.
+target-version = "py311"
+
+[lint]
+select = ["E4", "E7", "E9", "F"]
+external = [
+    "ARG002",
+    "BLE001",
+    "DTZ007",
+    "N802",
+    "PLC0415",
+    "PLR0913",
+    "PLR0915",
+    "PLR0917",
+    "PLR2004",
+    "S310",
+    "S603",
+]
