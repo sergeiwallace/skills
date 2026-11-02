@@ -3,7 +3,9 @@
 # installed into the system interpreter.
 UV_TEST := uv run --no-project --with pytest --with "typer>=0.12" \
 	--with "pydantic-settings>=2.2" \
-	--with-editable packages/skill-cli-foundation
+	--with "pydantic>=2.6" \
+	--with-editable packages/skill-cli-foundation \
+	--with-editable packages/meeting-retrieve
 
 .PHONY: check test lint
 
@@ -13,4 +15,4 @@ test:
 	$(UV_TEST) pytest -q
 
 lint:
-	uvx ruff check packages/skill-cli-foundation
+	uvx ruff check packages/skill-cli-foundation packages/meeting-retrieve

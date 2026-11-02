@@ -1,0 +1,24 @@
+[project]
+name = "meeting-retrieve"
+version = "0.1.0"
+description = "Named-meetings front end: resolves a meeting name, date and time to one recorded instance and lands it through a caller-supplied transport"
+# Apache-2.0 because the whole repository is Apache-2.0, the same as skill-cli-foundation.
+license = "Apache-2.0"
+license-files = ["LICENSE"]
+requires-python = ">=3.11"
+dependencies = [
+    "typer>=0.12",
+    "pydantic>=2.6",
+    "pydantic-settings>=2.2",
+    "skill-cli-foundation",
+]
+
+[tool.uv.sources]
+skill-cli-foundation = { path = "../skill-cli-foundation", editable = true }
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/meeting_retrieve"]
