@@ -1,0 +1,164 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Chat | [Example] Stand-up | Microsoft Teams</title>
+<!--
+  A static stand-in for the Teams web client, shaped like the DOM measured on acn-mac
+  (2026-10-20) for tests/test_teams_recap_summary.py. Every name and note is synthetic.
+
+  Query flags: chat=<title> (the open chat), card=never (the meeting card never renders),
+  notes=missing (the AI summary has no "Meeting notes" section), collab=1 (opening Recap fetches
+  a readcollabobject URL from this server).
+
+  window.__fixture records what the reader did: clicks on each control kind and window.open calls.
+  A chat row of the left navigation opens that chat (from the Recap too), as Teams does.
+-->
+<style>
+  #viewport { height: 120px; overflow-y: auto; }
+  .filler { height: 400px; }
+</style>
+</head>
+<body>
+<script>
+  const q = new URLSearchParams(location.search);
+  window.__fixture = {timestamp_clicks: 0, recap_clicks: 0, tab_clicks: 0, chevron_clicks: 0, chat_clicks: 0, other_clicks: 0, opens: 0};
+  const realOpen = window.open;
+  window.open = function () { window.__fixture.opens++; return realOpen.apply(window, arguments); };
+  document.addEventListener('click', e => {
+    const k = e.target.closest('[data-kind]');
+    const kind = k ? k.getAttribute('data-kind') : 'other';
+    window.__fixture[kind + '_clicks'] = (window.__fixture[kind + '_clicks'] || 0) + 1;
+  }, true);
+</script>
+
+<!-- Teams' left navigation: a [role=tree] that comes first in the document and must never be read. -->
+<nav>
+  <div role="tree"><div role="treeitem">Activity</div><div role="treeitem">Chat</div><div role="treeitem">Calendar</div></div>
+  <!-- The chat list (measured 2026-10-24): level-1 groups, each chat a level-2 row; a favorite appears twice. -->
+  <div role="tree" id="chat-list">
+    <div role="treeitem" aria-level="1">Favorites <div role="treeitem" aria-level="2" data-kind="chat">Lunch plans</div></div>
+    <div role="treeitem" aria-level="1">Chats
+      <div role="treeitem" aria-level="2" data-kind="chat"><div class="fui-TreeItemLayout"><div class="fui-TreeItemLayout__main">[Example] Stand-up</div></div></div>
+      <div role="treeitem" aria-level="2" data-kind="chat">Lunch plans</div>
+    </div>
+  </div>
+</nav>
+
+<main id="chat-view">
+  <h2 data-tid="chat-title"></h2>
+  <div role="tablist"><div role="tab">Chat</div></div>
+  <div id="viewport" data-tid="message-pane-list-viewport">
+    <div id="runway" data-tid="message-pane-list-runway">
+      <div class="filler" id="top-filler"></div>
+      <div data-tid="chat-pane-item">Recording stopped. 2:30 PM</div>
+      <div class="filler"></div>
+      <div data-tid="chat-pane-item">Meeting ended: [Example] Stand-up October 18, 2026 <button data-kind="recap">View recap</button></div>
+      <div data-tid="chat-pane-item">Latest message <button data-kind="other">1 Like reaction.</button></div>
+    </div>
+  </div>
+</main>
+
+<!-- Recap replaces the chat view in the same tab; its tabs are not in the DOM before that. -->
+<template id="recap-template">
+  <main id="recap-view">
+    <div role="tablist">
+      <div role="tab" data-kind="tab">Transcript</div>
+      <div role="tab" data-kind="tab" id="ai-tab">AI summary</div>
+    </div>
+    <div id="summary"></div>
+  </main>
+</template>
+
+<script>
+  document.querySelector('[data-tid=chat-title]').textContent = q.get('chat') || '[Example] Stand-up';
+
+  // The chat list is virtualized: the 2026-10-19 card is not in the DOM until the viewport is
+  // scrolled near its top, and it renders on a scroll event.
+  const viewport = document.getElementById('viewport');
+  viewport.scrollTop = viewport.scrollHeight;
+  viewport.addEventListener('scroll', () => {
+    if (q.get('card') === 'never' || viewport.scrollTop > 200 || document.getElementById('card-19')) return;
+    const card = document.createElement('div');
+    card.id = 'card-19';
+    card.setAttribute('data-tid', 'chat-pane-item');
+    card.innerHTML = 'Meeting ended: [Example] Stand-up October 19, 2026 <button data-kind="other">Open chat</button> <button data-kind="recap">View recap</button>';
+    document.getElementById('top-filler').after(card);
+  });
+
+  const chatView = document.getElementById('chat-view');
+  // Teams opens a chat on the row's mousedown (its React onMouseDown, measured 2026-10-24): a bare
+  // element.click() sends no mousedown and leaves the chat as it was.
+  document.addEventListener('mousedown', e => {
+    const row = e.target.closest('[data-kind=chat]');
+    if (!row) return;
+    const recapView = document.getElementById('recap-view');
+    if (recapView) recapView.replaceWith(chatView);
+    // Teams renders the new chat after the click handler returns.
+    Promise.resolve().then(() => { document.querySelector('[data-tid=chat-title]').textContent = row.innerText.trim(); });
+  });
+
+  document.addEventListener('click', e => {
+    const b = e.target.closest('button[data-kind=recap]');
+    if (!b) return;
+    const meeting = b.closest('[data-tid=chat-pane-item]').innerText;
+    chatView.replaceWith(document.getElementById('recap-template').content.cloneNode(true));
+    document.getElementById('recap-view').setAttribute('data-meeting', meeting);
+    document.getElementById('ai-tab').addEventListener('click', showSummary);
+    if (q.get('collab') === '1') fetch('/api/mcps/us/collab/readcollabobject/V2/obj@tenant/1/19:thread');
+  });
+
+  const NOTES = [
+    ['Topic Alpha: Alex said the alpha work is done.', ['Alpha detail one: the first part shipped.', '12', 'Alpha detail two: the second part is next.']],
+    ['Topic Beta: Blair raised a beta risk.', ['Beta detail: the risk is the schedule.']],
+  ];
+  const TASKS = ['Alpha follow-up: Alex to confirm the release.', 'Beta follow-up: Blair to share the plan.'];
+  const ts = () => '<button data-kind="timestamp">00:01:02</button>';
+  const chev = () => '<div data-kind="chevron"><svg width="8" height="8"></svg></div>';
+
+  function row(level, text, expandable) {
+    const r = document.createElement('div');
+    r.setAttribute('role', 'row');
+    r.setAttribute('aria-level', String(level));
+    if (expandable) r.setAttribute('aria-expanded', 'false');
+    // A sub-row starts with the same "." glyph a follow-up item does (measured 2026-10-20).
+    r.innerHTML = (expandable ? chev() : '<span>.</span>') + '<span>' + text + '</span>' + ts();
+    return r;
+  }
+
+  function showSummary() {
+    const s = document.getElementById('summary');
+    if (s.childElementCount) return;
+    if (q.get('notes') !== 'missing') {
+      const notes = document.createElement('section');
+      notes.innerHTML = '<div><h2>Meeting notes</h2></div><div role="treegrid"></div>';
+      const grid = notes.querySelector('[role=treegrid]');
+      for (const [head, subs] of NOTES) {
+        const r = row(1, head, true);
+        r.querySelector('[data-kind=chevron]').addEventListener('click', () => {
+          if (r.getAttribute('aria-expanded') === 'true') return;
+          // React commits the expansion after the click handler returns.
+          Promise.resolve().then(() => {
+            r.setAttribute('aria-expanded', 'true');
+            let at = r;
+            for (const sub of subs) { const c = row(2, sub, false); at.after(c); at = c; }
+          });
+        });
+        grid.appendChild(r);
+      }
+      s.appendChild(notes);
+    }
+    const follow = document.createElement('section');
+    follow.innerHTML = '<div><h2>Follow-up tasks</h2></div><div role="tree"></div>';
+    for (const t of TASKS) {
+      const it = document.createElement('div');
+      it.setAttribute('role', 'treeitem');
+      it.setAttribute('aria-expanded', 'false');
+      it.innerHTML = '<span>.</span><span>' + t + '</span>';
+      follow.querySelector('[role=tree]').appendChild(it);
+    }
+    s.appendChild(follow);
+  }
+</script>
+</body>
+</html>

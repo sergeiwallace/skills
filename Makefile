@@ -12,8 +12,9 @@ UV_TEST := uv run --no-project --with pytest --with "typer>=0.12" \
 check: test lint
 
 test:
-	$(UV_TEST) pytest -q
+	$(UV_TEST) pytest -q $(PYTEST_ARGS)
 
 lint:
 	uvx ruff check packages/skill-cli-foundation packages/meeting-retrieve \
-		skills/meeting-analysis/scripts tests
+		skills/meeting-analysis/scripts skills/teams/scripts \
+		skills/teams-message-draft/scripts tests
