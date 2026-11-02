@@ -83,7 +83,7 @@ def unarchived_doc() -> str:
     """The migrated layout before the first archive run: every entry still in pending."""
     entries = "\n".join(
         [
-            entry("Pending", "2026-10-14", "new-ask", "Jitendra: a new ask"),
+            entry("Pending", "2026-10-14", "new-ask", "Robin: a new ask"),
             entry(
                 "Sent",
                 "2026-10-13",
@@ -91,7 +91,7 @@ def unarchived_doc() -> str:
                 "AIMS chat: the key",
                 sent="2026-10-14 9:46 AM",
             ),
-            entry("Dropped", "2026-10-12", "old-facts", "Jitendra: three facts"),
+            entry("Dropped", "2026-10-12", "old-facts", "Robin: three facts"),
             entry(
                 "Sent",
                 "2026-10-09",
@@ -211,7 +211,7 @@ def test_sent_and_dropped_entries_in_pending_when_archived_then_filed_under_arch
     sent = section(text, "### Sent Messages", "### Dropped")
     dropped = section(text, "### Dropped", "## Tracking table")
     assert [h for h in headings(pending) if "[" in h] == [
-        "## [Pending] 2026-10-14 - Jitendra: a new ask",
+        "## [Pending] 2026-10-14 - Robin: a new ask",
         "## [Pending] 2026-10-02 - RDC team: CTMS partitions",
     ]
     assert [h for h in headings(sent) if h.startswith("#### ")] == [
@@ -219,7 +219,7 @@ def test_sent_and_dropped_entries_in_pending_when_archived_then_filed_under_arch
         "#### [Sent] 2026-10-09 - DISQOVER chat: status field",
     ]
     assert "##### Metadata (2026-10-13 aims-key)" in sent
-    assert "#### [Dropped] 2026-10-12 - Jitendra: three facts" in dropped
+    assert "#### [Dropped] 2026-10-12 - Robin: three facts" in dropped
     assert "- [Archived Messages](#archived-messages)" in text
     assert (
         "    - [[Sent] 2026-10-13 - AIMS chat: the key](#sent-2026-10-13---aims-chat-the-key)"
@@ -286,7 +286,7 @@ def test_archived_entry_set_back_to_pending_when_archived_then_returns_to_pendin
 
     assert code == 0, out
     pending = section(text, 'name="pending-messages"', "## Archived Messages")
-    assert "## [Pending] 2026-10-12 - Jitendra: three facts" in pending
+    assert "## [Pending] 2026-10-12 - Robin: three facts" in pending
     assert "| Last updated | 2026-10-20 |" in pending
     assert "No entries yet." in section(text, "### Dropped", "## Tracking table")
 
@@ -315,12 +315,12 @@ def test_pending_entry_marked_sent_when_set_status_then_archive_files_it_under_s
     text = (worktree / DOC_REL).read_text(encoding="utf-8")
 
     sent = section(text, "### Sent Messages", "### Dropped")
-    assert sent.index("#### [Sent] 2026-10-14 - Jitendra: a new ask") < sent.index(
+    assert sent.index("#### [Sent] 2026-10-14 - Robin: a new ask") < sent.index(
         "#### [Sent] 2026-10-13"
     )
     assert "| Sent | 2026-10-15 10:02 AM |" in sent
     assert (
-        "| [Jitendra: a new ask](#sent-2026-10-14---jitendra-a-new-ask) | Sent | 2026-10-14 | 2026-10-15 | 2026-10-15 |"
+        "| [Robin: a new ask](#sent-2026-10-14---robin-a-new-ask) | Sent | 2026-10-14 | 2026-10-15 | 2026-10-15 |"
         in text
     )
 
@@ -361,7 +361,7 @@ def test_doc_whose_result_would_not_validate_when_archived_then_nothing_written(
     code, out = archive(capsys, worktree)
 
     assert code == 1
-    assert "Jitendra: three facts" in out and "disagrees with Metadata Status" in out
+    assert "Robin: three facts" in out and "disagrees with Metadata Status" in out
     assert "not written" in out
     assert doc.read_text(encoding="utf-8") == before
 
@@ -396,10 +396,10 @@ def test_archived_doc_when_validated_then_passes(capsys, tmp_path):
         ),
         pytest.param(
             lambda t: t.replace(
-                "## [Pending] 2026-10-14 - Jitendra: a new ask",
-                "## [Sent] 2026-10-14 - Jitendra: a new ask",
+                "## [Pending] 2026-10-14 - Robin: a new ask",
+                "## [Sent] 2026-10-14 - Robin: a new ask",
             ).replace("| Status | Pending |", "| Status | Sent |", 1),
-            "Jitendra: a new ask' (line 54) is [Sent] but outside the archive",
+            "Robin: a new ask' (line 54) is [Sent] but outside the archive",
             id="sent-outside-archive",
         ),
         pytest.param(
@@ -422,7 +422,7 @@ def test_archived_doc_when_validated_then_passes(capsys, tmp_path):
                 "| Dropped | 2026-10-12 | 2026-10-12 |",
                 "| Pending | 2026-10-12 | 2026-10-12 |",
             ),
-            "tracking table is missing: | [Jitendra: three facts]",
+            "tracking table is missing: | [Robin: three facts]",
             id="tracking-row-disagrees",
         ),
     ],
@@ -479,7 +479,7 @@ def test_wrapped_ai_draft_when_validated_then_exit_nonzero_naming_the_entry(
     code, out = run(capsys, "validate", str(path))
 
     assert code == 1
-    assert "Jitendra: a new ask" in out
+    assert "Robin: a new ask" in out
     assert "AI-generated draft" in out and "plain text" in out
 
 
