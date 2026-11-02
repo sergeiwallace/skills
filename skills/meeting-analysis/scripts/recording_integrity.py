@@ -54,6 +54,12 @@ DEFAULT_TOLERANCE_SECONDS = 2.0
 # keyframe index still yields packets on an intact file.
 DEFAULT_TAIL_WINDOW_SECONDS = 30.0
 
+# `-read_intervals` has no spelling for "from here to the end of the file". Both the empty end
+# (`15.000%`) and the bare start (`15.000`) select ZERO packets, so the interval needs an explicit
+# end timestamp; one past any plausible recording length is what "the rest of the file" means.
+# A day is far longer than any single meeting recording.
+OPEN_INTERVAL_END_SECONDS = 86_400.0
+
 STATUS_OK = "ok"
 STATUS_TRUNCATED = "truncated"
 STATUS_UNREADABLE = "unreadable"
@@ -262,10 +268,18 @@ def probe_metadata(path: Path) -> tuple[float, int | None, list[StreamObservatio
 
 
 def _packet_timestamps(path: Path, selector: str, start: float | None) -> tuple[float | None, int, str]:
-    """Return (last pts_time, packet count, stderr) for one stream, optionally from `start`."""
+    """Return (last pts_time, packet count, stderr) for one stream, optionally from `start`.
+
+    The interval carries an explicit end, because an interval whose end is left empty is a
+    zero-length one: ffprobe 6.0 returns no packets for `15.000%` on an intact file as readily
+    as on a truncated one. That silently killed the fast path -- every stream's tail probe read
+    `last_packet_pts=None`, nothing ever cleared, and every inspection escalated to a full scan
+    while still producing the right verdict, so the cost was invisible. Measured on generated
+    20s media: `15.000%` and `15.000` each yield 0 packets, `15.000%1000000` yields all 200.
+    """
     args = ["-v", "error", "-select_streams", selector]
     if start is not None:
-        args += ["-read_intervals", f"{max(0.0, start):.3f}%"]
+        args += ["-read_intervals", f"{max(0.0, start):.3f}%{OPEN_INTERVAL_END_SECONDS:.3f}"]
     args += ["-show_entries", "packet=pts_time", "-of", "csv=p=0", str(path)]
     result = _run_ffprobe(args)
 

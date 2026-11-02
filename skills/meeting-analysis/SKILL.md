@@ -1,8 +1,8 @@
 ---
 name: meeting-analysis
-description: Turn a zip or directory of meeting sources (recording, vendor transcript, notes export) into a template-conformant analysis doc. Cross-checks the vendor transcript against an independent local ASR pass to recover mangled product names, reads screen-share frames natively, and records what did not work. Use for "analyze this meeting" or "write up the standup".
+description: Turn a meeting's sources (recording, vendor transcript, notes export, chat) into a template-conformant analysis doc, either from a zip or directory you give it or, with --retrieve, by first landing a named Microsoft Teams meeting's artefacts through the teams skill. Cross-checks the vendor transcript against an independent local ASR pass to recover mangled product names, reads screen-share frames natively, consolidates every action item, and records what did not work. Use for "analyze this meeting", "write up the standup" or "retrieve and analyze today's stand-up".
 license: Apache-2.0
-argument-hint: <zip-or-directory> [--author NAME] [--date YYYY-MM-DD] [--series NAME] [--kind recording-analysis|standup-update]
+argument-hint: "<zip-or-directory> | --retrieve <meeting-name|--chat TITLE> [--date YYYY-MM-DD] [--time HH:MM] [--author NAME] [--series NAME] [--kind recording-analysis|standup-update]"
 model: inherit
 ---
 
@@ -11,7 +11,62 @@ model: inherit
 Turn whatever subset of meeting artifacts exists into a **citation-bearing analysis doc** that a
 reader can audit against its sources.
 
-**Usage:** `/meeting-analysis <zip-or-directory> [--author NAME] [--date YYYY-MM-DD] [--series NAME] [--kind recording-analysis|standup-update]`
+**Usage:**
+
+- `/meeting-analysis <zip-or-directory> [--author NAME] [--date YYYY-MM-DD] [--series NAME] [--kind recording-analysis|standup-update]`
+- `/meeting-analysis --retrieve <meeting-name> [--date YYYY-MM-DD] [--time HH:MM]`
+- `/meeting-analysis --retrieve --chat "<chat title>" --date YYYY-MM-DD [--time HH:MM]`
+
+## Step 0, only with --retrieve: land the sources first
+
+`--retrieve` is optional. It fetches the meeting's artefacts with the `teams` skill's `meeting`
+command from this same repository, then continues at Step 1 with the directory it landed. Without
+the `teams` skill, or for a meeting held on another platform, export the sources yourself and
+start at Step 1. The command, its named-meetings config and its rules for picking an instance are
+in the `teams` skill's SKILL.md; the short form:
+
+```bash
+TEAMS_DIR="$(dirname "$(realpath "${CLAUDE_SKILL_DIR}")")/teams"
+uv run --script "$TEAMS_DIR/scripts/meeting.py" <meeting-name> [--date D] [--time HH:MM] --json
+```
+
+A meeting with no config entry is landed ad hoc with `--chat "<exact chat title>" --date
+YYYY-MM-DD` and goes into its own `docs/meetings/<slug>-<date>/` directory
+([Step 2](#step-2-the-directory-shape-is-a-convention-not-a-preference)).
+
+**Check the sign-in first, with a read that costs nothing** (the teams skill's cheapest read, for
+example a chat lookup). If it answers, carry on. If it is refused for want of a sign-in, follow the
+teams skill's own sign-in section, and ask the user only for the step that needs a person. Re-run
+the read to confirm before continuing.
+
+1. Build the arguments from what the user gave. Explicit options pass through unchanged. From
+   a prompt, map a named meeting to its config name (`meeting.py --list` prints them) and a day
+   to `--date`; "today" is today's date in the config's timezone, and no date means the latest
+   instance. **If the prompt names neither a configured meeting nor a chat with a date, ask the
+   user which meeting and which day before running anything.** Never guess a chat.
+2. Read the JSON object it prints. `complete: false` means an artefact is missing; `missing`
+   says which. When the reason is the AI Summary, the output also printed an `AI Summary request:`
+   line and an `AI Summary inbox:` line. Show both to the user, stop, and continue once the file is
+   at the inbox path and the command has been re-run; an analysis written over notes without
+   their AI Summary is the wrong document.
+3. Treat exit 2 as a question for the user and do not retry. It means the name is unknown, the day had
+   several instances and no `--time` picked one, or the output repository could not be found.
+   Relay its message, which lists the choices.
+4. Hand the result to Step 1: `--repo-root` is the JSON's `repo_path`; `--sources` is its
+   `data_dir`; `--date`, `--author` and `--series` are its fields. When `ad_hoc` is false,
+   `--meeting-root` is the parent of its `meeting_dir` and `--slug` is passed only when the JSON's
+   `slug` is not null. When `ad_hoc` is true, pass `--meeting-dir <meeting_dir>` (relative to the
+   repo root) and `--slug <slug>`: the doc is `<slug>-<date>/<slug>-<date>.md`. The analysis goes
+   where the meeting's config says, which can be a different repository from the one you are in;
+   in a git worktree, `meeting.py` takes `--repo-path <your worktree for that repository>` so
+   nothing lands in a main checkout.
+5. The meeting's chat is a source too. Read it before the transcript: a link, a decision or an
+   action item is often only there. A transport that lands it writes `data/<title> <date> chat.md`
+   (every message of the day with sender and local time, oldest first, reply quotes as quotes of
+   the original message with its sender, links with their text and exact URL) and copies each
+   attached file into `data/` under its own name. The `teams` skill's `land` does not write that
+   file, so read the day's messages with its `thread --conv ID --date D --json` command, save them
+   as `data/<title> <date> chat.md` in that shape, and say in provenance how the chat was read.
 
 The deterministic parts (which doc kind, where it goes, what each source is, whether one is already
 there) are done by `meeting_resolve.py` so they are not re-derived by hand each meeting. The
@@ -29,11 +84,15 @@ directory is. Use `${CLAUDE_SKILL_DIR}` for the scripts and the repo's own paths
 There can be two copies of this unit on one machine: the canonical one in the skill repo and a
 vendored copy inside a repo that carries meeting docs of its own.
 
+- **The scripts are shared; the SKILL.md need not be.** The vendored unit is `scripts/**`, the
+  bundled templates under `assets/`, and the shared `skill-cli-foundation` package. A consumer may
+  write its own SKILL.md to carry its organisation's meetings, transport and worked examples.
+
 - **Templates are resolved from the CURRENT repo first.** `meeting_resolve.py plan` prefers the
   working repo's committed `docs/meetings/TEMPLATE.md` (or `docs/meetings/standups/TEMPLATE.md`),
   because that is the copy a teammate reading the repo on the web will open and the copy the doc's
-  relative link points at. Only when the current repo has none does it fall back to the copy inside
-  this skill's own repo, and it says which source it used.
+  relative link points at. Only when the current repo has none does it fall back to the copy this
+  skill bundles under `${CLAUDE_SKILL_DIR}/assets/`, and it says which source it used.
 - **When both exist and differ, `plan` reports `drifted: true`.** Say so in your report. A repo is
   allowed its own committed copy; a divergence nobody has noticed is how the two versions stop
   being the same document.
@@ -54,7 +113,7 @@ templates**. Conflating them is the known failure in this workflow.
 | From | The recording, vendor transcript, notes export | Our own repo: git history, the task store, audit output |
 | Answers | What the meeting settled, and what it did not | What we did since last time, and what is actually true now |
 | Template | `docs/meetings/TEMPLATE.md` | `docs/meetings/standups/TEMPLATE.md` |
-| `template_version` | `meeting-analysis-1.1.0` | `standup-update-2.3.0` |
+| `template_version` | `meeting-analysis-1.2.0` | `standup-update-2.3.0` |
 | `meeting_type` | `standup` / `review` / `workshop` | `standup-update` |
 | Slug | `<series>-standup-analysis-<date>` | `<series>-standup-update-<date>` |
 
@@ -103,8 +162,24 @@ docs/meetings/<meeting-type>/<author>/<YYYY-MM-DD>/
   frames/                     extracted video frames (git-ignored)
 ```
 
-- **The `<author>` segment is kebab-case and is not optional.** It exists so two people can write
-  for the same meeting on the same day without contending for one filename.
+That is the shape of a **configured, recurring meeting**. An **ad hoc or one-off meeting** has no
+series to sort into, so it gets one directory that names it, directly under `docs/meetings/` and
+with the same `data/` and `derived/` inside:
+
+```text
+docs/meetings/<slug>-<YYYY-MM-DD>/
+  <slug>-<YYYY-MM-DD>.md      the deliverable
+  data/  derived/  frames/
+```
+
+`<slug>` is the meeting's name lowercased with every run of characters that is not a letter or
+digit replaced by one hyphen: a "Vendor Transition Review" on 2026-10-22 is
+`vendor-transition-review-2026-10-22/`. `meeting.py --chat ...` lands there by itself and
+`plan --meeting-dir ... --slug ...` writes the doc there. A meeting whose config names its own
+root (`plan --meeting-root <dir>`) gets `<dir>/<date>/`.
+
+- **The `<author>` segment is kebab-case and is not optional** in a recurring series. It exists so
+  two people can write for the same meeting on the same day without contending for one filename.
 - **The date appears twice on purpose.** The directory needs it so a series sorts and so the doc
   sits beside its own `data/` and `derived/`. The filename needs it because the filename is what
   survives leaving the directory: in an editor tab, a link, a PDF export or an attachment, the
@@ -259,14 +334,57 @@ of it.
   subsection is what makes the rest trustworthy.
 - **Record the method, including what failed**, with measurements and wall-clock costs. That is the
   most reusable part of the document.
+- **Fill the "Meeting chat" section from `data/<title> <date> chat.md`**: every message that bears
+  on the meeting, in order, with sender and time, its formatting kept (a reply quote stays a quote
+  of the original message with its sender, a link keeps its text and its working URL), and each
+  attached file named with its path under `data/`. Leave out only noise (joins, reactions), and say
+  that you did.
 - Confirm no credentials appeared in any frame, and state where the git-ignored media lives.
+
+## Step 6: action items, consolidated, tracked and proposed as tracker issues
+
+Every run ends with the follow-ups in three places: the doc, the user's task list and a list of
+proposed issues for the team's tracker. Do this after the synthesis, when every source has been
+read.
+
+1. **Extract every action item from every source**, not only the notes' follow-up table: the
+   transcript and recording (a spoken "I will", "can you", "let's", a commitment made on a shared
+   screen), the notes' follow-up rows, the AI Summary's tasks, and the chat. An item may exist in
+   only one of them. For each, record what is to be done, who owns it (the person who accepted
+   it, or "unassigned" when nobody did), the source and the evidence (a timestamp, a notes row, a
+   chat message time). Reuse the per-person tables; they are where readers look.
+2. **Consolidate duplicates and near-duplicates by judgement.** The notes, the AI Summary and the
+   transcript often state one commitment three ways. Merge items that would be done by the same
+   person as one piece of work; keep apart items that differ in owner, deliverable or deadline. A
+   merge or split that is not obvious is a decision: show the options and the one you chose in the
+   run's output. Record every consolidation in the doc's "Consolidated action items" table with
+   its reason.
+3. **Add each kept item to the user's task tracker when the session has one**; when it does not,
+   list the items for the user instead. **The analysis doc never carries an internal task id**: it
+   is read by people outside the session. The doc lists items with owner, source and evidence; the
+   ids live in the tracker and in the hand-off you give the user.
+4. **Propose tracker issues, do not create them.** Fill the doc's "Proposed issue-tracker issues"
+   table: one row per proposed issue with its summary, type, the suggested parent epic, the
+   suggested assignee, the action items it covers and the rationale. Group several small items of
+   one owner into one issue when they ship together. Create nothing unless the user asked for it
+   in this run; an existing related issue is named by its public key rather than re-proposed.
+5. **Surface it for review at the end of the run**: the action items, the tasks added and the
+   proposed issues, in the chat reply, so the user can approve, reassign or drop them. An item the
+   user drops is closed in the tracker, not deleted from the doc.
+
+## Step 7: land it, every run
+
+Commit the `data/`, `derived/` and doc files the section below names to the meeting's repository,
+under that repository's own rules for branches, review and merging. Prefer a branch or worktree of
+your own over the main checkout. A run that stops at an uncommitted doc is not done.
 
 ## What is committed and what is not
 
 Ignore by **FILE TYPE, never by directory**. Committed, because the analysis cites them:
-`data/*.vtt`, `data/*.pdf`, `derived/*.jsonl`, `derived/frame-analysis-*.md`,
-`derived/transcript-extraction.md`. Git-ignored: video and audio containers, `frames/`,
-`derived/grid/`, `derived/ocr/`, and `derived/*.py`.
+`data/*.vtt`, `data/*.pdf`, `data/*.html`, `data/* chat.md`, every file the chat attached (under
+its own name in `data/`, unless its type is one the ignore rules name), `derived/*.jsonl`,
+`derived/frame-analysis-*.md`, `derived/transcript-extraction.md`. Git-ignored: video and audio
+containers, `frames/`, `derived/grid/`, `derived/ocr/`, and `derived/*.py`.
 
 **Ignoring `data/` wholesale can keep a large video out while silently dropping its transcript.**
 If a large binary needs excluding, add its extension. Never add a directory that also holds text
@@ -281,12 +399,23 @@ impact, lead every item with what it functionally does rather than how it was do
 
 ## Output checklist (before declaring done)
 
+- [ ] With `--retrieve`: signed in before the first read, confirmed by a read that costs nothing.
+- [ ] Sources and analysis are committed to the meeting's repository, and nothing is left in a
+      scratch directory.
 - [ ] `recording_integrity.py` run on the recording, and every `-t` capped at the usable bound it
       reported rather than at the declared duration.
 - [ ] Kind chosen by the discriminator, and the other template's sections are absent rather than
       filled with "not applicable".
 - [ ] `plan` run, its conflict line clear (or reported), and its `drifted` flag reported if set.
-- [ ] Path is `<group>/<author>/<date>/<slug>-<date>.md`; no committed doc was renamed.
+- [ ] Path is `<group>/<author>/<date>/<slug>-<date>.md` for a configured meeting, or
+      `docs/meetings/<slug>-<date>/<slug>-<date>.md` for an ad hoc one; no committed doc was renamed.
+- [ ] The chat (`data/<title> <date> chat.md`) and its attached files are committed when the
+      meeting had a chat; the "Meeting chat" section carries every relevant message with sender,
+      time, quotes and links.
+- [ ] Every action item from every source is in the doc with owner, source and evidence;
+      consolidations are recorded with their reasons; no internal task id appears in the doc.
+- [ ] "Proposed issue-tracker issues" filled, nothing created unless asked; items and proposals
+      surfaced to the user for review.
 - [ ] Vendor filenames unchanged in `data/`; every path quoted in every command.
 - [ ] `transcript_diff.py` ASR-only section read; each correction in the terminology table with its
       basis; unresolved terms marked Low confidence rather than guessed.
@@ -302,5 +431,8 @@ impact, lead every item with what it functionally does rather than how it was do
 - `${CLAUDE_SKILL_DIR}/scripts/meeting_resolve.py` -- kind selection, path derivation, zip
   extraction, template resolution, vendored-copy verification.
 - `${CLAUDE_SKILL_DIR}/scripts/README.md` -- per-script usage, outputs and measured costs.
+- `${CLAUDE_SKILL_DIR}/assets/docs/meetings/` -- the two bundled templates, used when the working
+  repo has none of its own.
+- The `teams` skill in this repository -- the optional `--retrieve` transport for Microsoft Teams.
 - The working repo's `docs/meetings/README.md` -- the directory convention and the full operator
   workflow, including what is committed and what is ignored.

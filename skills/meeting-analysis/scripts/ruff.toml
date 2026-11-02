@@ -23,6 +23,12 @@
 # analysis corpus.
 line-length = 120
 
+# The scripts' own floor (their requires-python is >=3.11). Without this, ruff infers the
+# target from the nearest pyproject.toml's requires-python, so a consumer on >=3.14 has
+# its formatter rewrite `except (A, B):` into the 3.14-only `except A, B:` -- forking the
+# copy from this one and breaking it on every older interpreter.
+target-version = "py311"
+
 [lint]
 # Keeps the `# noqa: S603` directive in recording_integrity.py alive as a directive
 # rather than as dead text. S603 (subprocess call, untrusted input) is enabled in the
@@ -32,8 +38,3 @@ line-length = 120
 # gate from the canonical copy. `external` is exactly the setting for "preserve noqa
 # for codes this configuration does not enable".
 external = ["S603"]
-
-[lint.per-file-ignores]
-# The plugin builder rewrites this import into a live dependency in the generated
-# copy. Keep the source import so that transformation remains deterministic.
-"meeting_resolve.py" = ["F401"]

@@ -208,4 +208,4 @@ python frame_dedup.py derived/grid/ 60 --interval 10 --crop-fraction 0.865
 
 ## See Also
 
-- [the meeting workflow README](../../../docs/meetings/README.md) - the full meeting-analysis workflow these scripts support
+- [the skill's SKILL.md](../SKILL.md) - the full meeting-analysis workflow these scripts support

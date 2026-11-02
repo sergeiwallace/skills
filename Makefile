@@ -15,4 +15,5 @@ test:
 	$(UV_TEST) pytest -q
 
 lint:
-	uvx ruff check packages/skill-cli-foundation packages/meeting-retrieve
+	uvx ruff check packages/skill-cli-foundation packages/meeting-retrieve \
+		skills/meeting-analysis/scripts tests
