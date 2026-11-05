@@ -23,8 +23,8 @@ Python standard-library modules need no separate installation. The direct Python
 | Runtime | Dependency | Resolved version | License | License evidence |
 | --- | --- | --- | --- | --- |
 | Python | `jsonschema` | `4.26.0` | MIT | Installed distribution metadata and bundled `jsonschema-4.26.0.dist-info/licenses/COPYING` |
-| Python | `Pillow` | `11.3.0` | HPND | Installed distribution metadata and bundled `pillow-11.3.0.dist-info/licenses/LICENSE` |
-| Node | `@slidev/cli` | `52.19.1` | MIT | Installed `node_modules/@slidev/cli/package.json` `license` field and bundled `LICENSE` |
+| Python | `Pillow` | `13.0.0` | HPND | Installed distribution metadata and bundled `pillow-13.0.0.dist-info/licenses/LICENSE` |
+| Node | `@slidev/cli` | `53.0.0` | MIT | Installed `node_modules/@slidev/cli/package.json` `license` field and bundled `LICENSE` |
 | Node | `@slidev/theme-default` | `0.25.0` | MIT | Installed `node_modules/@slidev/theme-default/package.json` `license` field and bundled `LICENSE` |
 | Node | `playwright` | `1.58.2` | Apache-2.0 | Installed `node_modules/playwright/package.json` `license` field and bundled `LICENSE` |
 | Node | `playwright-chromium` | `1.58.2` | Apache-2.0 | Installed `node_modules/playwright-chromium/package.json` `license` field and bundled `LICENSE` |

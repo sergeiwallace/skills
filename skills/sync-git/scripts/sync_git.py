@@ -32,7 +32,7 @@ import typer
 from pydantic_settings import SettingsConfigDict
 from skill_cli_foundation import BaseSkillSettings, DryRunOption, make_app
 
-PLUGIN_ROOT = Path(os.environ["CLAUDE_PLUGIN_ROOT"])
+PLUGIN_ROOT = Path(__file__).resolve().parents[3]
 
 
 def _load_shared():

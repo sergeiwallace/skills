@@ -10,7 +10,6 @@ anything it cannot prove mechanical is reported for a human rather than guessed.
 
 from __future__ import annotations
 
-import fcntl
 import fnmatch
 import hashlib
 import json
@@ -24,6 +23,12 @@ from dataclasses import asdict, dataclass, field
 from pathlib import Path, PurePosixPath
 from typing import Literal
 from uuid import uuid4
+
+try:  # POSIX advisory locks; native Windows has no fcntl and locks a byte range.
+    import fcntl
+except ModuleNotFoundError:  # pragma: no cover - exercised on native Windows.
+    fcntl = None  # type: ignore[assignment]
+    import msvcrt
 
 try:  # Standalone-script and test-loader compatible imports.
     import git_review_core as core
@@ -577,6 +582,23 @@ def _is_ancestor(target: SyncTarget, older: str, newer: str) -> bool:
     return rc == 0
 
 
+def _lock_nonblocking(handle) -> None:
+    """Take an exclusive lock on ``handle`` or raise OSError at once."""
+    if fcntl is not None:
+        fcntl.flock(handle.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
+        return
+    handle.seek(0)
+    msvcrt.locking(handle.fileno(), msvcrt.LK_NBLCK, 1)
+
+
+def _unlock(handle) -> None:
+    if fcntl is not None:
+        fcntl.flock(handle.fileno(), fcntl.LOCK_UN)
+        return
+    handle.seek(0)
+    msvcrt.locking(handle.fileno(), msvcrt.LK_UNLCK, 1)
+
+
 @contextmanager
 def _lease(target: SyncTarget) -> Iterator[bool]:
     """A per-common-dir non-blocking lease; all failures are refusal evidence."""
@@ -584,14 +606,14 @@ def _lease(target: SyncTarget) -> Iterator[bool]:
     try:
         with lock_path.open("a+", encoding="utf-8") as handle:
             try:
-                fcntl.flock(handle.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
+                _lock_nonblocking(handle)
             except OSError:
                 yield False
                 return
             try:
                 yield True
             finally:
-                fcntl.flock(handle.fileno(), fcntl.LOCK_UN)
+                _unlock(handle)
     except OSError:
         yield False
 

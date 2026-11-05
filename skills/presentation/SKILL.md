@@ -12,7 +12,9 @@ research path before probing the platform or acquiring the deck lock. v1 support
 uses artifact-gated researcher, narrative editor, design planner, builder, QA critic, and presenter
 roles. Every deck requires digest-bound story-outline, representative-visual-system, and
 final-rehearsal-export approvals. Do not create an external transfer without approved-external
-classification. Keep generated artifacts under the deck directory rather than the skill.
+classification. Keep generated artifacts under the deck directory rather than the skill. It runs on
+Linux and macOS; WSL counts as Linux. Native Windows is refused before any deck change, because the
+deck lock needs flock(2).
 
 ## Narrative contract
 
