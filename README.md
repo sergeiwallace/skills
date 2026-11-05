@@ -39,10 +39,31 @@ Preview a skill before installing it:
 gh skill preview sergeiwallace/skills spec
 ```
 
-A Claude Code plugin-marketplace distribution is planned but not yet published for this
-repository; `gh skill install` is the currently supported path. For other hosts, follow the
-host's own [Agent Skills](https://agentskills.io/specification) installation instructions and
-review the skill's requirements first. Some skills use repository-level shared packages or
+### Install every skill as one Claude Code plugin
+
+This repository is also a Claude Code plugin marketplace named `skills`, with one plugin, also
+named `skills`, that carries every skill in the catalog. Install it from inside Claude Code
+(version 2.1.275 or later):
+
+```text
+/plugin install skills --marketplace sergeiwallace/skills
+```
+
+Or from your shell:
+
+```bash
+claude plugin marketplace add sergeiwallace/skills
+claude plugin install skills@skills
+```
+
+The plugin's version is the source commit recorded in
+[`PUBLIC-PROJECTION-PROVENANCE.json`](PUBLIC-PROJECTION-PROVENANCE.json), so
+`claude plugin update skills@skills` picks up each new projection.
+
+### Other hosts
+
+For other hosts, follow the host's own [Agent Skills](https://agentskills.io/specification)
+installation instructions and review the skill's requirements first. Some skills use repository-level shared packages or
 assets, so copying only a `skills/<name>/` directory is not a universal installation method.
 
 ## Included skills
