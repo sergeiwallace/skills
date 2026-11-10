@@ -91,6 +91,79 @@ under Apache-2.0; requirements are shown only when they materially affect use.
 
 <!-- GENERATED:CATALOG:END -->
 
+## Roadmap: modular skills, CLI tools, and MCP servers
+
+This public catalog is a curated subset of a larger working toolkit. The roadmap is to refactor
+and sanitize useful internally developed skills, extract reusable CLI libraries, and group
+related workflows into cohesive plugin modules. Where a stable tool interface is useful, focused
+MCP servers can expose the same underlying libraries instead of duplicating behavior in prompts.
+
+This is a direction, not a release schedule. The proposed release workflow is:
+
+```mermaid
+flowchart TD
+    inventory["Internal skills and tooling"] --> portable["Extract portable configuration and dependencies"]
+    portable --> review{"Privacy, license and safety review"}
+    review -->|Needs work| revise["Refactor and re-evaluate"]
+    revise --> portable
+    review -->|Approved| cli["CLI skills, plugin modules and shared libraries"]
+    review -->|Approved| adapters["MCP modules and host-specific adapters"]
+    cli --> validate["Validate each supported host and dependency set"]
+    adapters --> validate
+    validate --> publish["Publish approved artifacts and verified listings"]
+```
+
+The branches describe possible packaging paths, not modules or host support already released.
+
+The following are candidate **module families**, not published plugin names. **Internal** means
+the named skills or tooling exist in the private toolkit; portability work, public review, and
+packaging are still pending. It does not mean every feature is complete or validated across
+every host. Only skills listed in the [public catalog above](#included-skills) are installable
+from this repository today.
+
+| Module family | Skills and tooling | What it is for | Availability |
+| --- | --- | --- | --- |
+| Implementation and debugging | `implement`, `bug-fix` | Research, plan, implement, test, investigate root causes, and verify fixes with explicit review gates. | Internal |
+| Reviews, audits, and release readiness | `review`, `audit-auto`, `audit-review`, `release-prep` | Independent reviews, structured audits, evidence-backed findings, and release-readiness checks. | Internal |
+| Agent delegation and orchestration | `delegate`, `codex`, `handoff`, `orchestrate` | Scope delegated work, select agent roles, coordinate parallel tasks, and hand off context and verification requirements. | Internal |
+| Autonomous workflows and goals | `auto-flow`, `draft-goal`, `start-goal`, `exit-goal` | Stage-based workflows and bounded goal sessions with explicit gates, checkpoints, and escalation paths. | Internal |
+| Task planning and progress | `beads-task`, `track`, `next`, `progress-review`, `summary`, `load-task-panel`, `curate-task-panel`; public `clean-task-panel` | Maintain durable work items, choose next actions, review progress, and keep the active task view useful. | One public skill; internal extensions |
+| Session continuity | `save-state`, `auto-start`, `persist` | Preserve working context, resume interrupted work, and retain durable decisions and conventions. | Internal |
+| Decisions and human review | `decision-framework`, `format-decision`, `escalate-decision`, `held-doc-review`, `to-review` | Make decision criteria and authority explicit; prepare reviewable records and route questions that need human judgment. | Internal |
+| Git and worktree lifecycle | `commit`, `merge`, `pull-git`, `git-review`, `reap-worktree`; public `sync-git` | Review and synchronize changes, manage integration, and retire worktrees with appropriate safety checks. | One public skill; internal extensions |
+| Documentation and research | `doc`; public `research-doc`, `spec`, `explain`, `summarize` | Produce template-driven analysis, plans, designs, and research with traceability and review. | Public skills; internal documentation extensions |
+| Fleet coordination and messaging | `chief-of-staff`, `fleet-brief`, `message-board`, `git-inbox-take`; messaging adapters | Coordinate independent sessions, summarize fleet state, and route durable messages across sessions and machines. | Internal; service and transport dependencies |
+| Browser automation | `cdp-automation` | Reusable browser workflows through Chrome DevTools Protocol, with explicit session and environment requirements. | Internal |
+| Usage and cost visibility | `usage-status`, `api-spend` | Inspect available quota and usage signals, and estimate API costs where pricing data is available. | Internal; provider-dependent observations |
+| Templates and harness maintenance | `copier-propagate`, `harness-update`, `install-harness` | Propagate shared templates and maintain agent configuration with validation and recoverable update workflows. | Internal |
+| Harness diagnostics over MCP | `harness_validate`, `harness_explain`, `harness_plan`, `harness_doctor` | Expose bounded configuration inspection, validation, planning, and diagnostics to compatible MCP clients. | Internal runtime; public module packaging pending |
+| Task tooling over MCP | Beads MCP server | Expose structured issue reads and guarded mutations through the same task-management checks used by CLI workflows. | Internal runtime; public module packaging pending |
+| Shared CLI and plugin infrastructure | Public `skill-cli-foundation`; internal authority, checkpoint, task-state, usage, and runner packages | Reuse argument handling, contracts, validation, dependency resolution, and provenance across skills and tool interfaces. | Public foundation; broader modular packaging planned |
+
+### Packaging and distribution
+
+The current public installation options are individual skills and the all-in-one Claude Code
+plugin documented above. The next packaging direction is selective, cohesive plugin modules
+backed by shared CLI libraries, with focused MCP servers where they add value. The module
+boundaries, package names, and release order are still being worked out.
+
+Each public module needs portable configuration, explicit dependencies and permissions,
+license/provenance review, private-reference and secret checks, and relevant tests and evals.
+The distribution goal is Claude Code plugin marketplaces and other appropriate skill, package,
+or MCP registries. Additional registry listings and any official marketplace acceptance are
+future work, not current availability claims.
+
+### Host adaptations
+
+Development is centered on CLI-based workflows, especially Claude Code and Codex. Further
+adaptations are planned or exploratory for Claude Desktop and web, ChatGPT desktop and web,
+Gemini / Antigravity, pi, and other compatible agent hosts.
+
+A shared skill format does not imply feature parity: local command execution, hooks, task
+panels, browser access, and MCP transports differ by host. Each adaptation will need its own
+capability mapping and validation; the roadmap is not a claim that the internal toolkit already
+works unchanged in those environments.
+
 ## How skills work
 
 Each skill is a directory centered on a `SKILL.md` file, with optional scripts, templates,
