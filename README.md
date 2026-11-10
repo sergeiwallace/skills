@@ -94,7 +94,7 @@ under Apache-2.0; requirements are shown only when they materially affect use.
 ## Roadmap: modular skills, CLI tools, and MCP servers
 
 This public catalog is a curated subset of a larger working toolkit. The roadmap is to refactor
-and sanitize useful internally developed skills, extract reusable CLI libraries, and group
+and sanitize useful skills developed, adapted, or curated for that toolkit, extract reusable CLI libraries, and group
 related workflows into cohesive plugin modules. Where a stable tool interface is useful, focused
 MCP servers can expose the same underlying libraries instead of duplicating behavior in prompts.
 
@@ -115,30 +115,132 @@ flowchart TD
 
 The branches describe possible packaging paths, not modules or host support already released.
 
-The following are candidate **module families**, not published plugin names. **Internal** means
-the named skills or tooling exist in the private toolkit; portability work, public review, and
-packaging are still pending. It does not mean every feature is complete or validated across
-every host. Only skills listed in the [public catalog above](#included-skills) are installable
-from this repository today.
+The tables below list **one candidate skill per row**, grouped by workflow. These categories are
+not published plugin names. **Internal; packaging pending** means an implementation exists in
+the private toolkit, but portability work, public review, and public packaging remain. It does
+not mean every feature is complete or validated across every host. Only skills listed in the
+[public catalog above](#included-skills) are installable from this repository today; those
+already-public skills are not repeated here.
 
-| Module family | Skills and tooling | What it is for | Availability |
-| --- | --- | --- | --- |
-| Implementation and debugging | `implement`, `bug-fix` | Research, plan, implement, test, investigate root causes, and verify fixes with explicit review gates. | Internal |
-| Reviews, audits, and release readiness | `review`, `audit-auto`, `audit-review`, `release-prep` | Independent reviews, structured audits, evidence-backed findings, and release-readiness checks. | Internal |
-| Agent delegation and orchestration | `delegate`, `codex`, `handoff`, `orchestrate` | Scope delegated work, select agent roles, coordinate parallel tasks, and hand off context and verification requirements. | Internal |
-| Autonomous workflows and goals | `auto-flow`, `draft-goal`, `start-goal`, `exit-goal` | Stage-based workflows and bounded goal sessions with explicit gates, checkpoints, and escalation paths. | Internal |
-| Task planning and progress | `beads-task`, `track`, `next`, `progress-review`, `summary`, `load-task-panel`, `curate-task-panel`; public `clean-task-panel` | Maintain durable work items, choose next actions, review progress, and keep the active task view useful. | One public skill; internal extensions |
-| Session continuity | `save-state`, `auto-start`, `persist` | Preserve working context, resume interrupted work, and retain durable decisions and conventions. | Internal |
-| Decisions and human review | `decision-framework`, `format-decision`, `escalate-decision`, `held-doc-review`, `to-review` | Make decision criteria and authority explicit; prepare reviewable records and route questions that need human judgment. | Internal |
-| Git and worktree lifecycle | `commit`, `merge`, `pull-git`, `git-review`, `reap-worktree`; public `sync-git` | Review and synchronize changes, manage integration, and retire worktrees with appropriate safety checks. | One public skill; internal extensions |
-| Documentation and research | `doc`; public `research-doc`, `spec`, `explain`, `summarize` | Produce template-driven analysis, plans, designs, and research with traceability and review. | Public skills; internal documentation extensions |
-| Fleet coordination and messaging | `chief-of-staff`, `fleet-brief`, `message-board`, `git-inbox-take`; messaging adapters | Coordinate independent sessions, summarize fleet state, and route durable messages across sessions and machines. | Internal; service and transport dependencies |
-| Browser automation | `cdp-automation` | Reusable browser workflows through Chrome DevTools Protocol, with explicit session and environment requirements. | Internal |
-| Usage and cost visibility | `usage-status`, `api-spend` | Inspect available quota and usage signals, and estimate API costs where pricing data is available. | Internal; provider-dependent observations |
-| Templates and harness maintenance | `copier-propagate`, `harness-update`, `install-harness` | Propagate shared templates and maintain agent configuration with validation and recoverable update workflows. | Internal |
-| Harness diagnostics over MCP | `harness_validate`, `harness_explain`, `harness_plan`, `harness_doctor` | Expose bounded configuration inspection, validation, planning, and diagnostics to compatible MCP clients. | Internal runtime; public module packaging pending |
-| Task tooling over MCP | Beads MCP server | Expose structured issue reads and guarded mutations through the same task-management checks used by CLI workflows. | Internal runtime; public module packaging pending |
-| Shared CLI and plugin infrastructure | Public `skill-cli-foundation`; internal authority, checkpoint, task-state, usage, and runner packages | Reuse argument handling, contracts, validation, dependency resolution, and provenance across skills and tool interfaces. | Public foundation; broader modular packaging planned |
+The toolkit also includes upstream work. `grill-me` and `grilling` are vendored from
+[Matt Pocock's skills](https://github.com/mattpocock/skills) under MIT, and `archify` is an
+upstream MIT skill credited to `tt-a1i`. Their rows describe possible packaging here, not
+original authorship or an unreleased upstream project. Retired skills are excluded.
+
+### Implementation, reviews, and release readiness
+
+| Skill | Purpose | Release status |
+| --- | --- | --- |
+| `implement` | Carry a change through research, test-driven development, implementation, cross-review, checks, and acceptance verification. | Internal; packaging pending |
+| `bug-fix` | Reproduce a defect, establish its root cause and failing regression test, then fix and verify it. | Internal; packaging pending |
+| `review` | Review uncommitted changes with a separate model family and configurable review depth. | Internal; packaging pending |
+| `audit-auto` | Prepare and run a scoped audit autonomously, then incorporate findings and resolve in-scope decisions. | Internal; packaging pending |
+| `audit-review` | Prepare an audit brief for human approval before running the audit and incorporating findings. | Internal; packaging pending |
+| `release-prep` | Check release readiness against repository evidence and stop when required proof is missing. | Internal; packaging pending |
+
+### Delegation, orchestration, and autonomous goals
+
+| Skill | Purpose | Release status |
+| --- | --- | --- |
+| `delegate` | Build a bounded delegation brief, select the worker and execution settings, launch work, and collect results. | Internal; packaging pending |
+| `codex` | Delegate a well-scoped task to Codex and report the result. | Internal; packaging pending |
+| `handoff` | Transfer scoped work and context to another session working on an independent project or file set. | Internal; packaging pending |
+| `orchestrate` | Prepare and launch a coordinator with explicit isolation, integration, and parallel-worker limits. | Internal; packaging pending |
+| `auto-flow` | Drive a configurable research, documentation, implementation, and audit pipeline from validated workflow state. | Internal; packaging pending |
+| `draft-goal` | Turn a raw request into validated standing-goal documents without starting the goal. | Internal; packaging pending |
+| `start-goal` | Start a session goal from a template or drafted goal and verify that the session received it. | Internal; packaging pending |
+| `exit-goal` | Report why an autonomous run cannot finish, what remains, and which blockers or decisions need attention. | Internal; packaging pending |
+
+### Task planning, progress, and panel hygiene
+
+| Skill | Purpose | Release status |
+| --- | --- | --- |
+| `beads-task` | Create a durable Beads work item together with its session task-panel mirror. | Internal; packaging pending |
+| `track` | Turn untracked work from the conversation or repository into an issue in its owning project. | Internal; packaging pending |
+| `next` | Identify current priorities, work that can proceed autonomously, and reviews that would unblock progress. | Internal; packaging pending |
+| `progress-review` | Reconcile live session tasks with durable issues and produce an evidence-backed progress briefing. | Internal; packaging pending |
+| `summary` | Write an end-of-batch retrospective connecting the original request, completed work, decisions, and next actions. | Internal; packaging pending |
+| `load-task-panel` | Restore open session tasks to the Claude Code task panel. | Internal; packaging pending |
+| `curate-task-panel` | Reconcile an existing task panel with evidence and propose bounded cleanup and issue dispositions. | Internal; packaging pending |
+| `pr-badge-hygiene` | Remove a session's confirmed closed pull-request links from the Agents panel. | Internal; packaging pending |
+
+### Session continuity and durable context
+
+| Skill | Purpose | Release status |
+| --- | --- | --- |
+| `save-state` | Capture working state in memory and documents before compaction or context loss. | Internal; packaging pending |
+| `auto-start` | Reconstruct the pre-compaction plan, resume authorized work, and surface remaining review items. | Internal; packaging pending |
+| `persist` | Record permanent rules, decisions, and conventions in the appropriate context or procedure files. | Internal; packaging pending |
+| `truncate-check` | Compare submitted prompt text with transcript and composer evidence to investigate suspected truncation. | Internal; packaging pending |
+
+### Documentation, decisions, and human review
+
+| Skill | Purpose | Release status |
+| --- | --- | --- |
+| `doc` | Scaffold and author a standard document type from a live template registry, interactively or automatically. | Internal; packaging pending |
+| `decision-framework` | Resolve document decisions through a consistent authoring or review procedure. | Internal; packaging pending |
+| `format-decision` | Present a decision's context, options, recommendation, and relationship to the work it serves. | Internal; packaging pending |
+| `escalate-decision` | Package a blocked decision with its evidence and route it to an appropriately authorized reviewer. | Internal; packaging pending |
+| `held-doc-review` | Compile current progress, batch outcomes, blockers, and escalated decisions into one review document. | Internal; packaging pending |
+| `to-review` | Surface the documents and decisions a person must review to unblock waiting work. | Internal; packaging pending |
+| `grill-me` | Provide an explicit entry point to the upstream plan-and-design interview workflow. | Upstream MIT; packaging pending |
+| `grilling` | Stress-test a plan, decision, or idea through structured rounds of questions and a decision tree. | Upstream MIT; packaging pending |
+| `archify` | Create explorable architecture and workflow diagrams or a self-contained visual explainer from requirements or repository evidence. | Upstream MIT; packaging pending |
+
+### Git integration and worktree lifecycle
+
+| Skill | Purpose | Release status |
+| --- | --- | --- |
+| `commit` | Create a commit through a provenance-validated authoring procedure. | Internal; packaging pending |
+| `merge` | Land a finished change under the repository's rules, verify integration, synchronize worktrees, and close related work. | Internal; packaging pending |
+| `pull-git` | Fast-forward selected repositories and worktrees only where the available evidence shows it is safe. | Internal; packaging pending |
+| `git-review` | Review repository and worktree state, integrate ready changes, and identify provably redundant residue. | Internal; packaging pending |
+| `reap-worktree` | Retire named stale, merged, or superseded worktrees only with the required evidence and safety checks. | Internal; packaging pending |
+
+### Fleet coordination and messaging
+
+| Skill | Purpose | Release status |
+| --- | --- | --- |
+| `chief-of-staff` | Coordinate registered sessions across machines, track acknowledgements and progress, and surface blockers. | Internal; packaging pending |
+| `fleet-brief` | Produce a read-only fleet briefing covering session activity, progress, blockers, and decisions needing attention. | Internal; packaging pending |
+| `message-board` | Coordinate a cross-machine handoff through a fallback message board when native session messaging cannot reach the recipient. | Internal; packaging pending |
+| `git-inbox-take` | Accept durable work handed off through a Git-backed inbox and publish a receipt for the sender. | Internal; packaging pending |
+| `upload-screenshot` | File a screenshot in the appropriate shared workspace collection and notify the session that needs it. | Internal; packaging pending |
+
+### Browser automation and credential workflows
+
+| Skill | Purpose | Release status |
+| --- | --- | --- |
+| `cdp-automation` | Route browser automation to reusable Chrome DevTools Protocol procedures and environment-specific setup. | Internal; packaging pending |
+| `authenticate` | Check service authentication, route configured renewals, and diagnose failed credential channels. | Internal; packaging pending |
+| `secret-handoff` | Prepare an owner-executed secret-store handoff using variable names and recipes without exposing the secret value to the agent. | Internal; packaging pending |
+
+### Usage visibility, templates, and harness maintenance
+
+| Skill | Purpose | Release status |
+| --- | --- | --- |
+| `usage-status` | Report available context-window and provider-quota observations, including known reset times. | Internal; packaging pending |
+| `api-spend` | Estimate API spend from locally available transcript usage, with the estimate clearly labeled. | Internal; packaging pending |
+| `codex-usage-reset` | Inspect weekly usage and preview a banked reset; redeem a credit only when configured thresholds and authorization permit it. | Internal; packaging pending |
+| `copier-propagate` | Update shared project templates and propagate approved changes across consuming repositories. | Internal; packaging pending |
+| `harness-update` | Update agent context in an isolated worktree, validate and integrate it, and hand off installation when needed. | Internal; packaging pending |
+| `install-harness` | Compile, size-check, and install shared context artifacts while preserving traceability. | Internal; packaging pending |
+
+### MCP servers and shared tooling
+
+These are supporting tools and libraries, not additional skill names. Public source availability
+does not imply a separately released package or an MCP registry listing.
+
+| Tooling | Purpose | Release status |
+| --- | --- | --- |
+| Harness diagnostics MCP server | Expose bounded configuration validation, explanation, planning, and diagnostics through `harness_validate`, `harness_explain`, `harness_plan`, and `harness_doctor`. | Internal runtime; public module packaging pending |
+| Beads MCP server | Expose structured issue reads and guarded mutations through shared task-management checks. | Internal runtime; public module packaging pending |
+| Messaging adapters | Connect native session messaging and cross-machine transports for durable handoffs and coordination. | Internal; public module packaging pending |
+| [`skill-cli-foundation`](packages/skill-cli-foundation/) | Share argument handling and CLI foundations across skills and tools. | Public source; broader packaging planned |
+| [`meeting-retrieve`](packages/meeting-retrieve/) | Provide the shared meeting-retrieval dependency used by the public Teams workflow. | Public source; broader packaging planned |
+| Authority, checkpoint, and runner contracts | Share explicit authority boundaries, resumable checkpoints, and execution contracts. | Internal; public package review pending |
+| Task-state, repository-evidence, and usage-observation libraries | Normalize durable task state, read-only repository evidence, and provider usage observations. | Internal; public package review pending |
+| Ask-fidelity and workflow resolvers | Validate request traceability and resolve audit targets and document modes consistently across workflows. | Internal; public package review pending |
 
 ### Packaging and distribution
 
