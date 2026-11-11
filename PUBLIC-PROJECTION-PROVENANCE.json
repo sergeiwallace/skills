@@ -7,7 +7,7 @@
     ".claude-plugin/plugin.json": "sha256:62b392e8a1346f26eafd1f54e3417b813a5567e21fdcd7a738f4579760a0e21a",
     "LICENSE": "sha256:cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30",
     "NOTICE": "sha256:73d06c99c097121c028f76642a1464aef28534ddc5819cb8d5d1d32fe01cddf5",
-    "README.md": "sha256:c3b4329b5d75fa74982ce45f7a252842c72b7416d9ec0b452946662a1108d79d",
+    "README.md": "sha256:48f086ef78e17891986fe030a1eada017ad4e8970a720fe3fe00971692d52b23",
     "assets/__init__.py": "sha256:22fc5d2d59e28f89b47bcdaa52932c7be057b9187f468202aabcfb2ca8f96c1e",
     "assets/git_review_core.py": "sha256:bd1b45224d6bbf01c26ad6b958122e236910196430117a5b600d7e391ccc9611",
     "assets/git_review_sync.py": "sha256:7a509759368b4405874eaf2c15acc84a2d66d0f1f648b2cc991d867ee8dfec96",
