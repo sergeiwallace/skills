@@ -100,10 +100,18 @@ MCP servers can expose the same underlying libraries instead of duplicating beha
 
 This is a direction, not a release schedule. The proposed release workflow is:
 
-![Proposed release workflow: make internal skills portable, review privacy, licensing and safety, choose CLI/plugin or MCP/adapter packaging, validate each host, and publish. Work that needs revision returns to portability review.](docs/diagrams/skills-release-workflow.png)
-
-[View the scalable diagram](docs/diagrams/skills-release-workflow.svg) ·
-[Editable source and regeneration](docs/diagrams/README.md)
+```mermaid
+flowchart TD
+    inventory["Internal skills and tools"] --> portable["Portable config and dependencies"]
+    portable --> review{"Privacy, license and safety"}
+    review -->|Needs work| revise["Refactor and re-evaluate"]
+    revise --> portable
+    review -->|Approved| cli["CLI skills, plugins and libraries"]
+    review -->|Approved| adapters["MCP and host adapters"]
+    cli --> validate["Validate hosts and dependencies"]
+    adapters --> validate
+    validate --> publish["Publish artifacts and listings"]
+```
 
 The branches describe possible packaging paths, not modules or host support already released.
 
